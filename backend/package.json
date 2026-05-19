@@ -22,5 +22,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0"
+  }
 }
