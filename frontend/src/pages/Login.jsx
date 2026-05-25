@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { getApiErrorMessage } from '../utils/apiError';
 
 export default function Login() {
   const { login } = useAuth();
@@ -22,7 +23,7 @@ export default function Login() {
       login(data.token, data.user);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Try again.');
+      setError(getApiErrorMessage(err, 'Login failed. Try again.'));
     } finally {
       setLoading(false);
     }

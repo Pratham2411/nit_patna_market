@@ -10,9 +10,23 @@ connectDB();
 
 const app = express();
 
-// Middleware
+// Middleware — allow Vercel (with/without www), previews, and local dev
+const allowedOrigins = new Set([
+  'https://nit-patna-market.vercel.app',
+  'https://www.nit-patna-market.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+]);
+if (process.env.FRONTEND_URL) allowedOrigins.add(process.env.FRONTEND_URL);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || true,
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, origin);
+    if (/^https:\/\/[\w-]+-[\w-]+\.vercel\.app$/.test(origin)) return callback(null, origin);
+    if (origin.startsWith('http://localhost:')) return callback(null, origin);
+    callback(null, false);
+  },
   credentials: true,
 }));
 app.use(express.json());
