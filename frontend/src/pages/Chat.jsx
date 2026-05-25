@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { mediaUrl } from '../utils/mediaUrl';
 
 const POLL_INTERVAL = 3000; // 3 seconds
 
@@ -108,7 +109,7 @@ export default function Chat() {
         {product && (
           <img
             className="chat-header-img"
-            src={product.imageUrl || productFallback}
+            src={mediaUrl(product.imageUrl) || productFallback}
             alt={product.title}
             onError={e => { e.target.src = productFallback; }}
           />

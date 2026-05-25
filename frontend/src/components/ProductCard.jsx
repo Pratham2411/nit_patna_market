@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { mediaUrl } from '../utils/mediaUrl';
 
 const CATEGORY_COLORS = {
   Books:       'badge-blue',
@@ -19,7 +20,7 @@ export default function ProductCard({ product }) {
     <div className="product-card" onClick={() => navigate(`/product/${product._id}`)}>
       <div className="card-image-wrap">
         <img
-          src={product.imageUrl || fallback}
+          src={mediaUrl(product.imageUrl) || fallback}
           alt={product.title}
           onError={(e) => { e.target.src = fallback; }}
           loading="lazy"

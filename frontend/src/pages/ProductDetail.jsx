@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { mediaUrl } from '../utils/mediaUrl';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -75,7 +76,7 @@ export default function ProductDetail() {
           {/* Image */}
           <div className="detail-image-wrap">
             <img
-              src={product.imageUrl || fallback}
+              src={mediaUrl(product.imageUrl) || fallback}
               alt={product.title}
               onError={(e) => { e.target.src = fallback; }}
             />

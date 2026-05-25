@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { mediaUrl } from '../utils/mediaUrl';
 
 export default function Conversations() {
   const { user }   = useAuth();
@@ -54,7 +55,7 @@ export default function Conversations() {
                 >
                   <img
                     className="conv-item-img"
-                    src={conv.product?.imageUrl || fallback}
+                    src={mediaUrl(conv.product?.imageUrl) || fallback}
                     alt={conv.product?.title}
                     onError={e => { e.target.src = fallback; }}
                   />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { mediaUrl } from '../utils/mediaUrl';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -100,7 +101,7 @@ export default function Dashboard() {
                 <div key={product._id} className="dash-card">
                   <img
                     className="dash-card-img"
-                    src={product.imageUrl || fallback}
+                    src={mediaUrl(product.imageUrl) || fallback}
                     alt={product.title}
                     onError={(e) => { e.target.src = fallback; }}
                   />

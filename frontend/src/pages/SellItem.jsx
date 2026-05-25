@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
+import { mediaUrl } from '../utils/mediaUrl';
 
 const CATEGORIES = ['Books', 'Electronics', 'Clothing', 'Furniture', 'Stationery', 'Sports', 'Other'];
 
@@ -30,7 +31,7 @@ export default function SellItem() {
           price:       data.price,
           category:    data.category,
         });
-        if (data.imageUrl) setImagePreview(data.imageUrl);
+        if (data.imageUrl) setImagePreview(mediaUrl(data.imageUrl));
       })
       .catch(() => navigate('/dashboard'))
       .finally(() => setFetching(false));
