@@ -80,3 +80,5 @@ FRONTEND_URL=http://localhost:3000
 **Render (dashboard — do not commit secrets):** set `MONGO_URI`, `JWT_SECRET`, and `FRONTEND_URL=https://nit-patna-market.vercel.app`
 
 **Vercel:** `VITE_API_URL=https://nit-patna-market.onrender.com` (or `.../api` — both work)
+
+**Vercel SPA routing:** `frontend/vercel.json` rewrites all routes to `index.html` so refresh on `/messages`, `/product/:id`, etc. does not 404.
