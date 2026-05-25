@@ -65,9 +65,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - 📧 Contact seller via email link
 - 🌑 Dark glassmorphism UI
 
-## Environment Variables (backend/.env)
+## Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and fill in your values (`.env` is gitignored).
+
+**Local (`backend/.env`):**
 ```
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/college-marketplace
-JWT_SECRET=your_secret_here
+MONGO_URI=mongodb+srv://<user>:<password>@cluster0.vcxwz6h.mongodb.net/college-marketplace?retryWrites=true&w=majority&appName=Cluster0
+JWT_SECRET=your_long_random_secret_here
+FRONTEND_URL=http://localhost:3000
 ```
+
+**Render (dashboard — do not commit secrets):** set `MONGO_URI`, `JWT_SECRET`, and `FRONTEND_URL=https://nit-patna-market.vercel.app`
+
+**Vercel:** `VITE_API_URL=https://nit-patna-market.onrender.com` (or `.../api` — both work)
