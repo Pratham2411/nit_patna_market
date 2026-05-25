@@ -11,8 +11,10 @@ const productSchema = new mongoose.Schema(
     imageUrl:    { type: String, default: '' },
     seller:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status:      { type: String, enum: ['available', 'sold'], default: 'available' },
+    isSpam:      { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model('Product', productSchema);
+module.exports.CATEGORIES = CATEGORIES;

@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import AdminBadge from './AdminBadge';
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
 
-  // Poll unread count every 10s when logged in
   useEffect(() => {
     if (!user) { setUnread(0); return; }
 
@@ -32,7 +32,7 @@ export default function Navbar() {
       <div className="container navbar-inner">
         <Link to="/" className="navbar-logo">
           <div className="logo-icon">🎓</div>
-          Campus Market
+          NIT Patna Market
         </Link>
 
         <div className="navbar-links">
@@ -40,17 +40,28 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <span className="nav-user-info">👋 {user?.name?.split(' ')[0] ?? 'Hey'}</span>
+              <span className="nav-user-info">
+                👋 {user?.name?.split(' ')[0]}
+                {isAdmin && <AdminBadge />}
+              </span>
               <Link to="/dashboard" className="nav-link">My Listings</Link>
 
-              {/* Messages with unread dot */}
-              <Link to="/messages" className="nav-link nav-msg-badge">
-                💬 Messages
-                {unread > 0 && <span className="unread-dot" title={`${unread} unread`} />}
+              <Link to="/messages" className="nav-icon-btn" title="Messages">
+                <svg className="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span className="nav-icon-label">Inbox</span>
+                {unread > 0 && (
+                  <span className="nav-unread-count">{unread > 99 ? '99+' : unread}</span>
+                )}
               </Link>
 
-              <Link to="/sell" className="btn btn-primary btn-sm">+ Sell Item</Link>
-              <button onClick={handleLogout} className="btn btn-secondary btn-sm">Logout</button>
+              {isAdmin && (
+                <Link to="/admin" className="nav-link">Admin</Link>
+              )}
+
+              <Link to="/sell" className="btn btn-primary btn-sm">+ Sell</Link>
+              <button type="button" onClick={handleLogout} className="btn btn-secondary btn-sm">Logout</button>
             </>
           ) : (
             <>

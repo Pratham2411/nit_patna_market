@@ -10,6 +10,8 @@ import SellItem from './pages/SellItem';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Conversations from './pages/Conversations';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 
 export default function App() {
   return (
@@ -26,6 +28,7 @@ export default function App() {
           <Route path="/dashboard"                 element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/messages"                  element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
           <Route path="/chat/:productId/:otherUserId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

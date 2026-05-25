@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
+import ProductSocial from '../components/ProductSocial';
+import AdminBadge from '../components/AdminBadge';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -26,7 +28,8 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id, navigate]);
 
-  const isSeller = user && product && user.id === product.seller?._id;
+  const isSeller = user && product && String(user.id) === String(product.seller?._id);
+  const isAdmin = user?.isAdmin || user?.role === 'admin';
 
   const handleDelete = async () => {
     if (!confirm('Delete this listing? This cannot be undone.')) return;
@@ -100,13 +103,8 @@ export default function ProductDetail() {
               <div className="detail-meta-item">
                 <span>👤</span>
                 <span>Seller: <strong>{product.seller?.name}</strong></span>
+                {product.seller?.role === 'admin' && <AdminBadge />}
               </div>
-              {product.seller?.college && (
-                <div className="detail-meta-item">
-                  <span>🏛️</span>
-                  <span>College: <strong>{product.seller.college}</strong></span>
-                </div>
-              )}
               {product.seller?.email && (
                 <div className="detail-meta-item">
                   <span>📧</span>
@@ -122,6 +120,16 @@ export default function ProductDetail() {
             </div>
 
             <div className="detail-actions">
+              {isAdmin && !isSeller && (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDelete}
+                  disabled={actionLoading === 'delete'}
+                >
+                  {actionLoading === 'delete' ? <span className="spinner" /> : '🗑️ Admin Delete'}
+                </button>
+              )}
               {isSeller ? (
                 <>
                   <Link to={`/sell/${product._id}`} className="btn btn-secondary">✏️ Edit</Link>
@@ -165,7 +173,8 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Toast */}
+        <ProductSocial productId={product._id} />
+
         {toast && (
           <div className="toast-container">
             <div className={`toast toast-${toast.type}`}>{toast.msg}</div>

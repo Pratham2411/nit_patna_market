@@ -1,18 +1,20 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { isAdminEmail } = require('../config/admins');
 
 const userSchema = new mongoose.Schema(
   {
-    name:    { type: String, required: true, trim: true },
-    email:   { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password:{ type: String, required: true, minlength: 6 },
-    college: { type: String, required: true, trim: true },
+    name:     { type: String, required: true, trim: true },
+    email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true, minlength: 6 },
+    role:     { type: String, enum: ['user', 'admin'], default: 'user' },
+    isBanned: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Hash password before saving
 userSchema.pre('save', async function (next) {
+  if (isAdminEmail(this.email)) this.role = 'admin';
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();

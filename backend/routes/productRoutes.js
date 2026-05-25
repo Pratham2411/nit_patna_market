@@ -4,8 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const Product = require('../models/Product');
 const auth = require('../middleware/auth');
-
-// --- Multer setup ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '..', 'uploads');
@@ -13,25 +11,24 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g,'_')}`);
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`);
   },
 });
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Only image files are allowed'));
-    }
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only image files are allowed'));
     cb(null, true);
   },
 });
 
-// Helper: generate a picsum placeholder seeded by title 
 const placeholder = (title) =>
   `https://picsum.photos/seed/${encodeURIComponent(title || Date.now())}/600/400`;
 
-// GET /api/products/my/listings  (must be BEFORE /:id)
+const canManageProduct = (product, user) =>
+  product.seller.toString() === user.id || user.isAdmin;
+
 router.get('/my/listings', auth, async (req, res) => {
   try {
     const products = await Product.find({ seller: req.user.id }).sort({ createdAt: -1 });
@@ -41,11 +38,10 @@ router.get('/my/listings', auth, async (req, res) => {
   }
 });
 
-// GET /api/products — browse with optional filters
 router.get('/', async (req, res) => {
   try {
     const { search, category, minPrice, maxPrice, status } = req.query;
-    const query = {};
+    const query = { isSpam: false };
 
     if (search) query.title = { $regex: search, $options: 'i' };
     if (category) query.category = category;
@@ -58,7 +54,7 @@ router.get('/', async (req, res) => {
     }
 
     const products = await Product.find(query)
-      .populate('seller', 'name college')
+      .populate('seller', 'name role')
       .sort({ createdAt: -1 });
 
     res.json(products);
@@ -67,18 +63,17 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/products/:id — single product
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('seller', 'name college email');
+    const product = await Product.findById(req.params.id).populate('seller', 'name email role');
     if (!product) return res.status(404).json({ message: 'Product not found' });
+    if (product.isSpam) return res.status(404).json({ message: 'Product not found' });
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// POST /api/products — create listing
 router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     const { title, description, price, category } = req.body;
@@ -86,27 +81,24 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
     if (!title || !description || !price || !category)
       return res.status(400).json({ message: 'All fields are required' });
 
-    const imageUrl = req.file
-      ? `/uploads/${req.file.filename}`
-      : placeholder(title);
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : placeholder(title);
 
     const product = await Product.create({
       title, description, price: Number(price), category, imageUrl,
       seller: req.user.id,
     });
-    await product.populate('seller', 'name college');
+    await product.populate('seller', 'name role');
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// PUT /api/products/:id — edit own listing
 router.put('/:id', auth, upload.single('image'), async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    if (product.seller.toString() !== req.user.id)
+    if (!canManageProduct(product, req.user))
       return res.status(403).json({ message: 'Not authorized to edit this listing' });
 
     const { title, description, price, category } = req.body;
@@ -117,14 +109,13 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
     if (req.file) product.imageUrl = `/uploads/${req.file.filename}`;
 
     await product.save();
-    await product.populate('seller', 'name college');
+    await product.populate('seller', 'name role');
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// PATCH /api/products/:id/status — mark as sold / available
 router.patch('/:id/status', auth, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -140,16 +131,14 @@ router.patch('/:id/status', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    if (product.seller.toString() !== req.user.id)
+    if (!canManageProduct(product, req.user))
       return res.status(403).json({ message: 'Not authorized to delete this listing' });
 
-    // Remove local file if it exists
-    if (product.imageUrl.startsWith('/uploads/')) {
+    if (product.imageUrl?.startsWith('/uploads/')) {
       const filePath = path.join(__dirname, '..', product.imageUrl);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }

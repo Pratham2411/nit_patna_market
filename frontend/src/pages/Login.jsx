@@ -46,7 +46,7 @@ export default function Login() {
               className="form-input"
               type="email"
               name="email"
-              placeholder="you@college.edu"
+              placeholder="you@nitp.ac.in"
               value={form.email}
               onChange={handleChange}
               required

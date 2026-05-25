@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '../utils/apiError';
 export default function Register() {
   const { login } = useAuth();
   const navigate  = useNavigate();
-  const [form, setForm]   = useState({ name: '', email: '', password: '', college: '' });
+  const [form, setForm]   = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -38,8 +38,8 @@ export default function Register() {
       <div className="auth-card">
         <div className="auth-card-header">
           <div className="auth-logo">🎓</div>
-          <h1>Join Campus Market</h1>
-          <p>Create your free account in seconds</p>
+          <h1>Join NIT Patna Market</h1>
+          <p>NIT Patna students only — one campus marketplace</p>
         </div>
 
         <form id="register-form" onSubmit={handleSubmit}>
@@ -50,7 +50,7 @@ export default function Register() {
               className="form-input"
               type="text"
               name="name"
-              placeholder="Aditya Madhav"
+              placeholder="Your name"
               value={form.name}
               onChange={handleChange}
               required
@@ -58,28 +58,14 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="reg-email">College Email</label>
+            <label className="form-label" htmlFor="reg-email">Email</label>
             <input
               id="reg-email"
               className="form-input"
               type="email"
               name="email"
-              placeholder="you@college.edu"
+              placeholder="you@nitp.ac.in"
               value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="reg-college">College Name</label>
-            <input
-              id="reg-college"
-              className="form-input"
-              type="text"
-              name="college"
-              placeholder="NIT Patna"
-              value={form.college}
               onChange={handleChange}
               required
             />

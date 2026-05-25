@@ -1,10 +1,10 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const { formatUser } = require('../utils/formatUser');
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   const authHeader = req.header('Authorization');
-  const token = authHeader && authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : null;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!token) {
     return res.status(401).json({ message: 'No token — authorization denied' });
@@ -12,9 +12,14 @@ module.exports = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(401).json({ message: 'User not found' });
+    if (user.isBanned) return res.status(403).json({ message: 'Account suspended' });
+
+    req.user = formatUser(user);
+    req.userDoc = user;
     next();
-  } catch (err) {
+  } catch {
     res.status(401).json({ message: 'Token is invalid or expired' });
   }
 };

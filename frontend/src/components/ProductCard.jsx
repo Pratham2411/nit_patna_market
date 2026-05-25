@@ -42,12 +42,6 @@ export default function ProductCard({ product }) {
         <div className="card-meta">
           <span>👤</span>
           <span>{product.seller?.name || 'Unknown'}</span>
-          {product.seller?.college && (
-            <>
-              <span>·</span>
-              <span>{product.seller.college}</span>
-            </>
-          )}
         </div>
       </div>
     </div>
