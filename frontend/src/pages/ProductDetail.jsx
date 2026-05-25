@@ -157,7 +157,7 @@ export default function ProductDetail() {
                 product.status === 'available' && user && (
                   <button
                     className="btn btn-primary btn-lg"
-                    onClick={() => navigate(`/chat/${product._id}/${product.seller._id}`)}
+                    onClick={() => navigate(`/messages?product=${product._id}&user=${product.seller._id}`)}
                   >
                     💬 Chat with Seller
                   </button>

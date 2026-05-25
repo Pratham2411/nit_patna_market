@@ -6,7 +6,7 @@ const auth = require('../middleware/auth');
 router.get('/unread-count', auth, async (req, res) => {
   try {
     const count = await Message.countDocuments({
-      receiver: req.user.id,
+      receiver: String(req.user.id),
       read: false,
     });
     res.json({ count });
@@ -17,7 +17,7 @@ router.get('/unread-count', auth, async (req, res) => {
 
 router.get('/conversations', auth, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = String(req.user.id);
 
     const messages = await Message.find({
       $or: [{ sender: userId }, { receiver: userId }],
@@ -32,18 +32,18 @@ router.get('/conversations', auth, async (req, res) => {
       if (!msg.product) continue;
 
       const otherUser =
-        msg.sender._id.toString() === userId ? msg.receiver : msg.sender;
+        String(msg.sender._id) === userId ? msg.receiver : msg.sender;
       const key = `${msg.product._id}-${otherUser._id}`;
 
       if (!convMap.has(key)) {
-        const sellerId = msg.product.seller?.toString?.() || String(msg.product.seller);
+        const sellerId = String(msg.product.seller?._id || msg.product.seller);
         const myRole = sellerId === userId ? 'seller' : 'buyer';
         const otherRole = myRole === 'seller' ? 'buyer' : 'seller';
 
         convMap.set(key, {
           product: msg.product,
           otherUser: {
-            _id: otherUser._id,
+            _id: String(otherUser._id),
             name: otherUser.name,
             role: otherUser.role,
           },
@@ -68,7 +68,7 @@ router.get('/conversations', auth, async (req, res) => {
 router.get('/:productId/:otherUserId', auth, async (req, res) => {
   try {
     const { productId, otherUserId } = req.params;
-    const userId = req.user.id;
+    const userId = String(req.user.id);
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: 'Product not found' });
@@ -101,20 +101,35 @@ router.post('/', auth, async (req, res) => {
     if (!productId || !receiverId || !text?.trim())
       return res.status(400).json({ message: 'productId, receiverId, and text are required' });
 
-    if (req.user.id === receiverId)
+    const senderId = String(req.user.id);
+    const recvId = String(receiverId);
+
+    if (senderId === recvId)
       return res.status(400).json({ message: 'You cannot message yourself' });
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: 'Product not found' });
 
-    const sellerId = product.seller.toString();
-    if (req.user.id !== sellerId && receiverId !== sellerId)
-      return res.status(400).json({ message: 'Conversation must be between buyer and seller' });
+    const sellerId = String(product.seller);
+
+    // Allow seller ↔ buyer, or anyone in an existing thread on this listing
+    const inExistingThread = await Message.exists({
+      product: productId,
+      $or: [
+        { sender: senderId, receiver: recvId },
+        { sender: recvId, receiver: senderId },
+      ],
+    });
+
+    const involvesSeller = senderId === sellerId || recvId === sellerId;
+    if (!involvesSeller && !inExistingThread) {
+      return res.status(400).json({ message: 'You can only message the seller of this listing' });
+    }
 
     const message = await Message.create({
       product: productId,
-      sender: req.user.id,
-      receiver: receiverId,
+      sender: senderId,
+      receiver: recvId,
       text: text.trim(),
     });
 

@@ -6,7 +6,7 @@ const resolveRole = (user) => {
 };
 
 const formatUser = (user) => ({
-  id: user._id,
+  id: String(user._id),
   name: user.name,
   email: user.email,
   role: resolveRole(user),
