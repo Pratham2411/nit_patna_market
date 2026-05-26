@@ -4,11 +4,16 @@ const { isAdminEmail } = require('../config/admins');
 
 const userSchema = new mongoose.Schema(
   {
-    name:     { type: String, required: true, trim: true },
-    email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
-    role:     { type: String, enum: ['user', 'admin'], default: 'user' },
+
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
     isBanned: { type: Boolean, default: false },
+
+    // Optional user profile fields
+    phone: { type: String, default: '', trim: true },
+    avatarUrl: { type: String, default: '' }, // stored as /uploads/<filename>
   },
   { timestamps: true }
 );
@@ -21,3 +26,4 @@ userSchema.pre('save', async function (next) {
 });
 
 module.exports = mongoose.model('User', userSchema);
+

@@ -10,10 +10,14 @@ export default function Navbar() {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
-    if (!user) { setUnread(0); return; }
+    if (!user) {
+      setUnread(0);
+      return;
+    }
 
     const fetch = () =>
-      api.get('/messages/unread-count')
+      api
+        .get('/messages/unread-count')
         .then(({ data }) => setUnread(data.count))
         .catch(() => {});
 
@@ -36,7 +40,9 @@ export default function Navbar() {
         </Link>
 
         <div className="navbar-links">
-          <Link to="/" className="nav-link">Browse</Link>
+          <Link to="/" className="nav-link">
+            Browse
+          </Link>
 
           {user ? (
             <>
@@ -44,10 +50,23 @@ export default function Navbar() {
                 👋 {user?.name?.split(' ')[0]}
                 {isAdmin && <AdminBadge />}
               </span>
-              <Link to="/dashboard" className="nav-link">My Listings</Link>
+
+              <Link to="/dashboard" className="nav-link">
+                My Listings
+              </Link>
+
+              <Link to="/profile" className="nav-link">
+                Profile
+              </Link>
 
               <Link to="/messages" className="nav-icon-btn" title="Messages">
-                <svg className="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="nav-icon-svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
                 <span className="nav-icon-label">Inbox</span>
@@ -56,12 +75,14 @@ export default function Navbar() {
                 )}
               </Link>
 
-              {isAdmin && (
-                <Link to="/admin" className="nav-link">Admin</Link>
-              )}
+              {isAdmin && <Link to="/admin" className="nav-link">Admin</Link>}
 
-              <Link to="/sell" className="btn btn-primary btn-sm">+ Sell</Link>
-              <button type="button" onClick={handleLogout} className="btn btn-secondary btn-sm">Logout</button>
+              <Link to="/sell" className="btn btn-primary btn-sm">
+                + Sell
+              </Link>
+              <button type="button" onClick={handleLogout} className="btn btn-secondary btn-sm">
+                Logout
+              </button>
             </>
           ) : (
             <>
@@ -74,3 +95,4 @@ export default function Navbar() {
     </nav>
   );
 }
+
