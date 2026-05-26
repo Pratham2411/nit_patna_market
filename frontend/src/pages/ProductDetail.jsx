@@ -61,6 +61,7 @@ export default function ProductDetail() {
   const fallback = product
     ? `https://picsum.photos/seed/${encodeURIComponent(product.title)}/800/600`
     : '';
+  const sellerInitial = product?.seller?.name?.charAt(0)?.toUpperCase() || '?';
 
   if (loading) return <div className="loader-page"><div className="spinner" /></div>;
   if (!product) return null;
@@ -100,10 +101,21 @@ export default function ProductDetail() {
             <p className="detail-description">{product.description}</p>
 
             <div className="detail-meta-row">
-              <div className="detail-meta-item">
-                <span>👤</span>
-                <span>Seller: <strong>{product.seller?.name}</strong></span>
-                {product.seller?.role === 'admin' && <AdminBadge />}
+              <div className="detail-seller-card">
+                <span className="user-avatar user-avatar-lg" aria-hidden="true">
+                  {product.seller?.avatarUrl ? (
+                    <img src={mediaUrl(product.seller.avatarUrl)} alt="" />
+                  ) : (
+                    <span>{sellerInitial}</span>
+                  )}
+                </span>
+                <div>
+                  <span className="detail-seller-label">Seller</span>
+                  <div className="detail-seller-name">
+                    <strong>{product.seller?.name}</strong>
+                    {product.seller?.role === 'admin' && <AdminBadge />}
+                  </div>
+                </div>
               </div>
               {product.seller?.email && (
                 <div className="detail-meta-item">

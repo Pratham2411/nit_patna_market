@@ -173,10 +173,69 @@ button { cursor: pointer; font-family: var(--font); }
 }
 
 .nav-user-info {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  transition: all var(--transition);
 }
+.nav-user-info:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+  border-color: var(--border);
+}
+
+.nav-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.nav-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nav-user-name { max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+
+.user-avatar {
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(124, 58, 237, 0.16);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  color: var(--accent-light);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar-xs { width: 24px; height: 24px; font-size: 0.68rem; }
+.user-avatar-sm { width: 34px; height: 34px; font-size: 0.82rem; }
+.user-avatar-lg { width: 56px; height: 56px; font-size: 1.1rem; }
 
 /* ============================================================
    BUTTONS
@@ -341,6 +400,11 @@ button { cursor: pointer; font-family: var(--font); }
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.card-seller {
+  min-height: 26px;
+  color: var(--text-secondary);
 }
 
 /* ============================================================
@@ -601,6 +665,26 @@ button { cursor: pointer; font-family: var(--font); }
 }
 
 .detail-meta-item strong { color: var(--text-primary); }
+
+.detail-seller-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-seller-label {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  margin-bottom: 2px;
+}
+
+.detail-seller-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
 
 .detail-actions {
   display: flex;
@@ -932,6 +1016,12 @@ button { cursor: pointer; font-family: var(--font); }
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 2px;
+}
+
+.chat-user-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chat-header-info p {
@@ -1274,6 +1364,13 @@ button { cursor: pointer; font-family: var(--font); }
   flex-wrap: wrap;
   margin-top: 2px;
 }
+
+.inbox-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .inbox-role-badge {
   font-size: 0.65rem;
   font-weight: 700;
@@ -1359,6 +1456,17 @@ button { cursor: pointer; font-family: var(--font); }
   align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
+}
+
+.social-author {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.social-author .star-rating {
+  grid-column: 2;
 }
 .review-text { color: var(--text-secondary); margin: 0 0 10px; line-height: 1.5; }
 .social-time { font-size: 0.72rem; color: var(--text-muted); }

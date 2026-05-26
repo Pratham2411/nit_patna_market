@@ -8,7 +8,7 @@ router.get('/product/:productId', async (req, res) => {
     const productId = req.params.productId;
     const [reviews, stats] = await Promise.all([
       Review.find({ product: productId })
-        .populate('user', 'name email role')
+        .populate('user', 'name email role avatarUrl')
         .sort({ createdAt: -1 }),
       Review.aggregate([
         { $match: { product: new mongoose.Types.ObjectId(productId) } },
@@ -56,7 +56,7 @@ router.post('/product/:productId', auth, async (req, res) => {
       rating: ratingNum,
       text: text?.trim() || '',
     });
-    await review.populate('user', 'name email role');
+    await review.populate('user', 'name email role avatarUrl');
     res.status(201).json(review);
   } catch (err) {
     if (err.code === 11000)

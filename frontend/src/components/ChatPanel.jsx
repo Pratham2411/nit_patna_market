@@ -99,6 +99,7 @@ export default function ChatPanel({ productId, otherUserId, otherUser: otherUser
   const productFallback = product
     ? `https://picsum.photos/seed/${encodeURIComponent(product.title)}/48/48`
     : '';
+  const otherInitial = otherUser?.name?.charAt(0)?.toUpperCase() || '?';
 
   let lastDate = '';
 
@@ -114,7 +115,16 @@ export default function ChatPanel({ productId, otherUserId, otherUser: otherUser
           />
         )}
         <div className="chat-header-info">
-          <h2>{otherUser?.name || 'Chat'}</h2>
+          <h2 className="chat-user-heading">
+            <span className="user-avatar user-avatar-sm" aria-hidden="true">
+              {otherUser?.avatarUrl ? (
+                <img src={mediaUrl(otherUser.avatarUrl)} alt="" />
+              ) : (
+                <span>{otherInitial}</span>
+              )}
+            </span>
+            {otherUser?.name || 'Chat'}
+          </h2>
           <p>
             <Link to={`/product/${productId}`}>{product?.title}</Link>
             {product && (

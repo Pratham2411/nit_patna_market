@@ -15,6 +15,7 @@ export default function ProductCard({ product }) {
   const navigate = useNavigate();
 
   const fallback = `https://picsum.photos/seed/${encodeURIComponent(product.title)}/600/400`;
+  const sellerInitial = product.seller?.name?.charAt(0)?.toUpperCase() || '?';
 
   return (
     <div className="product-card" onClick={() => navigate(`/product/${product._id}`)}>
@@ -39,8 +40,14 @@ export default function ProductCard({ product }) {
       <div className="card-body">
         <div className="card-title">{product.title}</div>
         <div className="card-price">₹{Number(product.price).toLocaleString('en-IN')}</div>
-        <div className="card-meta">
-          <span>👤</span>
+        <div className="card-meta card-seller">
+          <span className="user-avatar user-avatar-xs" aria-hidden="true">
+            {product.seller?.avatarUrl ? (
+              <img src={mediaUrl(product.seller.avatarUrl)} alt="" />
+            ) : (
+              <span>{sellerInitial}</span>
+            )}
+          </span>
           <span>{product.seller?.name || 'Unknown'}</span>
         </div>
       </div>

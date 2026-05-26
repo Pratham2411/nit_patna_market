@@ -103,6 +103,7 @@ export default function Conversations() {
                 const fallback = `https://picsum.photos/seed/${encodeURIComponent(conv.product?.title || key)}/96/96`;
                 const isMe = String(conv.lastMessage.sender._id) === String(user?.id);
                 const roleLabel = conv.otherRole === 'seller' ? 'Seller' : 'Buyer';
+                const otherInitial = conv.otherUser.name?.charAt(0)?.toUpperCase() || '?';
                 const isActive = selected && String(selected.product._id) === String(conv.product._id)
                   && String(selected.otherUser._id) === String(conv.otherUser._id);
 
@@ -126,7 +127,16 @@ export default function Conversations() {
                       </div>
                       <div className="inbox-item-meta">
                         <span className="inbox-role-badge">{roleLabel}</span>
-                        <span>{conv.otherUser.name}</span>
+                        <span className="inbox-person">
+                          <span className="user-avatar user-avatar-xs" aria-hidden="true">
+                            {conv.otherUser.avatarUrl ? (
+                              <img src={mediaUrl(conv.otherUser.avatarUrl)} alt="" />
+                            ) : (
+                              <span>{otherInitial}</span>
+                            )}
+                          </span>
+                          {conv.otherUser.name}
+                        </span>
                         <span>·</span>
                         <span>₹{Number(conv.product?.price || 0).toLocaleString('en-IN')}</span>
                       </div>

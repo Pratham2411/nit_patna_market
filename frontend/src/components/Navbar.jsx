@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import AdminBadge from './AdminBadge';
+import { mediaUrl } from '../utils/mediaUrl';
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth();
@@ -46,17 +47,20 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <span className="nav-user-info">
-                👋 {user?.name?.split(' ')[0]}
+              <Link to="/profile" className="nav-user-info" title="Open profile">
+                <span className="nav-user-avatar" aria-hidden="true">
+                  {user?.avatarUrl ? (
+                    <img src={mediaUrl(user.avatarUrl)} alt="" />
+                  ) : (
+                    <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                  )}
+                </span>
+                <span className="nav-user-name">{user?.name?.split(' ')[0]}</span>
                 {isAdmin && <AdminBadge />}
-              </span>
+              </Link>
 
               <Link to="/dashboard" className="nav-link">
                 My Listings
-              </Link>
-
-              <Link to="/profile" className="nav-link">
-                Profile
               </Link>
 
               <Link to="/messages" className="nav-icon-btn" title="Messages">

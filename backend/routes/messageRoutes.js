@@ -22,8 +22,8 @@ router.get('/conversations', auth, async (req, res) => {
     const messages = await Message.find({
       $or: [{ sender: userId }, { receiver: userId }],
     })
-      .populate('sender', 'name role')
-      .populate('receiver', 'name role')
+      .populate('sender', 'name role avatarUrl')
+      .populate('receiver', 'name role avatarUrl')
       .populate('product', 'title imageUrl status price seller')
       .sort({ createdAt: -1 });
 
@@ -46,6 +46,7 @@ router.get('/conversations', auth, async (req, res) => {
             _id: String(otherUser._id),
             name: otherUser.name,
             role: otherUser.role,
+            avatarUrl: otherUser.avatarUrl || '',
           },
           lastMessage: msg,
           unread: 0,
@@ -80,7 +81,7 @@ router.get('/:productId/:otherUserId', auth, async (req, res) => {
         { sender: otherUserId, receiver: userId },
       ],
     })
-      .populate('sender', 'name role')
+      .populate('sender', 'name role avatarUrl')
       .sort({ createdAt: 1 });
 
     await Message.updateMany(
@@ -133,7 +134,7 @@ router.post('/', auth, async (req, res) => {
       text: text.trim(),
     });
 
-    await message.populate('sender', 'name role');
+    await message.populate('sender', 'name role avatarUrl');
     res.status(201).json(message);
   } catch (err) {
     res.status(500).json({ message: err.message });

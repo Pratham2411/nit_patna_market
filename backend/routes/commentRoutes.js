@@ -4,7 +4,7 @@ const auth = require('../middleware/auth');
 router.get('/product/:productId', async (req, res) => {
   try {
     const comments = await Comment.find({ product: req.params.productId })
-      .populate('user', 'name email role')
+      .populate('user', 'name email role avatarUrl')
       .sort({ createdAt: -1 });
     res.json(comments);
   } catch (err) {
@@ -22,7 +22,7 @@ router.post('/product/:productId', auth, async (req, res) => {
       user: req.user.id,
       text: text.trim(),
     });
-    await comment.populate('user', 'name email role');
+    await comment.populate('user', 'name email role avatarUrl');
     res.status(201).json(comment);
   } catch (err) {
     res.status(500).json({ message: err.message });

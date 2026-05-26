@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { getApiErrorMessage } from '../utils/apiError';
+import { mediaUrl } from '../utils/mediaUrl';
 import StarRating from './StarRating';
 import AdminBadge from './AdminBadge';
 
@@ -140,9 +141,18 @@ export default function ProductSocial({ productId }) {
             reviews.map((r) => (
               <div key={r._id} className="review-card glass-card">
                 <div className="review-card-top">
-                  <div>
-                    <strong>{r.user.name}</strong>
-                    {r.user.role === 'admin' && <AdminBadge />}
+                  <div className="social-author">
+                    <span className="user-avatar user-avatar-sm" aria-hidden="true">
+                      {r.user.avatarUrl ? (
+                        <img src={mediaUrl(r.user.avatarUrl)} alt="" />
+                      ) : (
+                        <span>{r.user.name?.charAt(0)?.toUpperCase() || '?'}</span>
+                      )}
+                    </span>
+                    <div>
+                      <strong>{r.user.name}</strong>
+                      {r.user.role === 'admin' && <AdminBadge />}
+                    </div>
                     <StarRating value={r.rating} readOnly size="sm" />
                   </div>
                   <span className="social-time">{formatDate(r.createdAt)}</span>
@@ -190,9 +200,18 @@ export default function ProductSocial({ productId }) {
             comments.map((c) => (
               <div key={c._id} className="comment-card">
                 <div className="comment-card-top">
-                  <div>
-                    <strong>{c.user.name}</strong>
-                    {c.user.role === 'admin' && <AdminBadge />}
+                  <div className="social-author">
+                    <span className="user-avatar user-avatar-sm" aria-hidden="true">
+                      {c.user.avatarUrl ? (
+                        <img src={mediaUrl(c.user.avatarUrl)} alt="" />
+                      ) : (
+                        <span>{c.user.name?.charAt(0)?.toUpperCase() || '?'}</span>
+                      )}
+                    </span>
+                    <div>
+                      <strong>{c.user.name}</strong>
+                      {c.user.role === 'admin' && <AdminBadge />}
+                    </div>
                   </div>
                   <span className="social-time">{formatDate(c.createdAt)}</span>
                 </div>

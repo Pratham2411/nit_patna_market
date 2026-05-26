@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
     }
 
     const products = await Product.find(query)
-      .populate('seller', 'name role')
+      .populate('seller', 'name role avatarUrl')
       .sort({ createdAt: -1 });
 
     res.json(products);
@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('seller', 'name email role');
+    const product = await Product.findById(req.params.id).populate('seller', 'name email role avatarUrl');
     if (!product) return res.status(404).json({ message: 'Product not found' });
     if (product.isSpam) return res.status(404).json({ message: 'Product not found' });
     res.json(product);
@@ -87,7 +87,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       title, description, price: Number(price), category, imageUrl,
       seller: req.user.id,
     });
-    await product.populate('seller', 'name role');
+    await product.populate('seller', 'name role avatarUrl');
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -109,7 +109,7 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
     if (req.file) product.imageUrl = `/uploads/${req.file.filename}`;
 
     await product.save();
-    await product.populate('seller', 'name role');
+    await product.populate('seller', 'name role avatarUrl');
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -125,6 +125,7 @@ router.patch('/:id/status', auth, async (req, res) => {
 
     product.status = req.body.status === 'available' ? 'available' : 'sold';
     await product.save();
+    await product.populate('seller', 'name email role avatarUrl');
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });

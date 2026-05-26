@@ -7,7 +7,7 @@ import { mediaUrl } from '../utils/mediaUrl';
 import '../profile.css';
 
 export default function Profile() {
-  const { logout } = useAuth();
+  const { user: authUser, logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -25,6 +25,7 @@ export default function Profile() {
     try {
       const { data } = await api.get('/auth/me');
       const user = data.user;
+      updateUser(user);
       setPhone(user.phone || '');
       setCurrentAvatarUrl(user.avatarUrl || '');
       setAvatarPreview('');
@@ -63,6 +64,7 @@ export default function Profile() {
       });
 
       const user = data.user;
+      updateUser(user);
       setPhone(user.phone || '');
       setCurrentAvatarUrl(user.avatarUrl || '');
       setAvatarFile(null);
@@ -90,6 +92,7 @@ export default function Profile() {
   };
 
   const avatarToShow = avatarPreview || currentAvatarUrl;
+  const profileInitial = authUser?.name?.charAt(0)?.toUpperCase() || 'U';
 
   if (loading) {
     return (
@@ -107,8 +110,26 @@ export default function Profile() {
     <main className="page-content">
       <div className="container">
         <div className="profile-page">
-          <h1 className="page-title">Your Profile</h1>
-          <p className="page-subtitle">Update your photo and phone number, or delete your account.</p>
+          <div className="profile-hero glass-card">
+            <div className="profile-hero-avatar">
+              {avatarToShow ? (
+                <img
+                  src={mediaUrl(avatarToShow)}
+                  alt=""
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <span>{profileInitial}</span>
+              )}
+            </div>
+            <div className="profile-hero-copy">
+              <span className="profile-eyebrow">Student profile</span>
+              <h1>{authUser?.name || 'Your Profile'}</h1>
+              <p>{authUser?.email}</p>
+            </div>
+          </div>
 
           {error && <p className="form-error">{error}</p>}
 
@@ -126,7 +147,7 @@ export default function Profile() {
                       }}
                     />
                   ) : (
-                    <span className="profile-avatar-empty">No photo</span>
+                    <span className="profile-avatar-empty">{profileInitial}</span>
                   )}
                 </div>
 
@@ -138,8 +159,12 @@ export default function Profile() {
 
               <div className="profile-meta">
                 <div className="profile-meta-row">
+                  <span className="profile-meta-label">Name</span>
+                  <span className="profile-meta-value">{authUser?.name || 'Student'}</span>
+                </div>
+                <div className="profile-meta-row">
                   <span className="profile-meta-label">Email</span>
-                  <span className="profile-meta-value">Saved on login</span>
+                  <span className="profile-meta-value">{authUser?.email}</span>
                 </div>
               </div>
             </div>
