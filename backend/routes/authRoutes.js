@@ -27,12 +27,28 @@ const signToken = (user) => {
 };
 
 const NITP_EMAIL_DOMAIN = '@nitp.ac.in';
-const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const VERIFICATION_OTP_TTL_MS = 10 * 60 * 1000;
 
-const createVerificationToken = () => {
-  const token = crypto.randomBytes(32).toString('hex');
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  return { token, tokenHash };
+const hashVerificationCode = (code) => crypto.createHash('sha256').update(String(code)).digest('hex');
+
+const createVerificationCode = () => {
+  const code = String(crypto.randomInt(100000, 1000000));
+  return { code, codeHash: hashVerificationCode(code) };
+};
+
+const setEmailVerificationCode = (user, codeHash) => {
+  user.emailVerificationTokenHash = codeHash;
+  user.emailVerificationExpires = new Date(Date.now() + VERIFICATION_OTP_TTL_MS);
+};
+
+const sendSignupVerification = async (user, res, code) => {
+  const emailResult = await sendVerificationEmail({ to: user.email, name: user.name, code });
+  return res.status(201).json({
+    message: 'Account created. Check your NITP email for the OTP before logging in.',
+    email: user.email,
+    verificationUrl: emailResult.verifyUrl,
+    ...(process.env.NODE_ENV !== 'production' && emailResult.code ? { verificationCode: emailResult.code } : {}),
+  });
 };
 
 // ─── Multer for avatar uploads ─────────────────────────────────────────────
@@ -73,48 +89,54 @@ router.post('/register', async (req, res) => {
     if (!isAdmin && !emailLower.endsWith(NITP_EMAIL_DOMAIN)) {
       return res.status(400).json({ message: `Use your ${NITP_EMAIL_DOMAIN} email to sign up` });
     }
-    if (await User.findOne({ email: emailLower })) {
-      return res.status(400).json({ message: 'Email already registered' });
+    const existingUser = await User.findOne({ email: emailLower });
+    if (existingUser) {
+      if (existingUser.isEmailVerified || isAdminEmail(existingUser.email)) {
+        return res.status(400).json({ message: 'Email already registered' });
+      }
+
+      const { code, codeHash } = createVerificationCode();
+      setEmailVerificationCode(existingUser, codeHash);
+      await existingUser.save();
+      return await sendSignupVerification(existingUser, res, code);
     }
 
-    const { token, tokenHash } = createVerificationToken();
+    const { code, codeHash } = createVerificationCode();
     const user = await User.create({
       name: String(name).trim(),
       email: emailLower,
       password,
       isEmailVerified: isAdmin,
-      emailVerificationTokenHash: isAdmin ? '' : tokenHash,
-      emailVerificationExpires: isAdmin ? null : new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+      emailVerificationTokenHash: isAdmin ? '' : codeHash,
+      emailVerificationExpires: isAdmin ? null : new Date(Date.now() + VERIFICATION_OTP_TTL_MS),
     });
 
     if (isAdmin) {
       return res.status(201).json({ token: signToken(user), user: formatUser(user) });
     }
 
-    const emailResult = await sendVerificationEmail({ to: user.email, name: user.name, token });
-    res.status(201).json({
-      message: 'Account created. Check your NITP email to verify your account before logging in.',
-      ...(process.env.NODE_ENV !== 'production' && emailResult.verifyUrl ? { verificationUrl: emailResult.verifyUrl } : {}),
-    });
+    return await sendSignupVerification(user, res, code);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(err.statusCode || 500).json({ message: err.message });
   }
 });
 
 // POST /api/auth/verify-email
 router.post('/verify-email', async (req, res) => {
   try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ message: 'Verification token is required' });
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ message: 'Email and OTP are required' });
 
-    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const emailLower = String(email).toLowerCase().trim();
+    const codeHash = hashVerificationCode(String(code).trim());
     const user = await User.findOne({
-      emailVerificationTokenHash: tokenHash,
+      email: emailLower,
+      emailVerificationTokenHash: codeHash,
       emailVerificationExpires: { $gt: new Date() },
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Verification link is invalid or expired' });
+      return res.status(400).json({ message: 'OTP is invalid or expired' });
     }
 
     user.isEmailVerified = true;

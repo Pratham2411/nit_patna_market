@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { getApiErrorMessage } from '../utils/apiError';
 
 export default function Register() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm]   = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [verificationUrl, setVerificationUrl] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) =>
@@ -20,6 +22,7 @@ export default function Register() {
     setError('');
     setSuccess('');
     setVerificationUrl('');
+    setVerificationCode('');
     const email = form.email.trim().toLowerCase();
     if (form.password.length < 6) {
       setError('Password must be at least 6 characters');
@@ -30,10 +33,12 @@ export default function Register() {
       const { data } = await api.post('/auth/register', { ...form, email });
       if (data.token && data.user) {
         login(data.token, data.user);
+        navigate('/');
         return;
       }
-      setSuccess(data.message || 'Account created. Check your NITP email to verify your account.');
-      setVerificationUrl(data.verificationUrl || '');
+      setSuccess(data.message || 'Account created. Check your NITP email for the OTP.');
+      setVerificationUrl(data.verificationUrl || `/verify-email?email=${encodeURIComponent(email)}`);
+      setVerificationCode(data.verificationCode || '');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Registration failed. Try again.'));
     } finally {
@@ -97,7 +102,8 @@ export default function Register() {
           {success && <p className="form-success">{success}</p>}
           {verificationUrl && (
             <p className="social-hint">
-              Dev verification link: <a href={verificationUrl}>verify now</a>
+              <a href={verificationUrl}>Enter OTP</a>
+              {verificationCode ? ` (dev OTP: ${verificationCode})` : ''}
             </p>
           )}
 
