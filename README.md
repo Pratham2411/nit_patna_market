@@ -82,11 +82,16 @@ SMTP_USER=your_smtp_username
 SMTP_PASS=your_smtp_password
 SMTP_FROM="NIT Patna Market <no-reply@example.com>"
 SMTP_TIMEOUT_MS=10000
+BREVO_API_KEY=your_brevo_api_key
+BREVO_FROM_EMAIL=no-reply@example.com
+BREVO_FROM_NAME=NIT Patna Market
 ```
 
 For local development, if SMTP variables are not set, the backend prints the verification OTP in the server console.
 
 For Brevo SMTP, use `smtp-relay.brevo.com`, port `587`, and `SMTP_SECURE=false`. Port `465` should use `SMTP_SECURE=true`.
+
+For Render, prefer `BREVO_API_KEY` with a verified `BREVO_FROM_EMAIL`; it sends over HTTPS and avoids SMTP port timeouts. SMTP remains as a fallback if the API key is not set.
 
 **Render (dashboard — do not commit secrets):** set `MONGO_URI`, `JWT_SECRET`, `FRONTEND_URL=https://nit-patna-market.vercel.app`, and the SMTP variables above.
 
