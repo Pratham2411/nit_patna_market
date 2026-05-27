@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import AdminBadge from './AdminBadge';
-import FeedbackModal from './FeedbackModal';
+import NotificationBell from './notifications/NotificationBell';
 import { mediaUrl } from '../utils/mediaUrl';
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -46,6 +45,8 @@ export default function Navbar() {
           <Link to="/" className="nav-link">
             Browse
           </Link>
+
+          <NotificationBell />
 
           {user ? (
             <>
@@ -83,14 +84,6 @@ export default function Navbar() {
 
               {isAdmin && <Link to="/admin" className="nav-link">Admin</Link>}
 
-              <button
-                type="button"
-                className="nav-link nav-feedback-btn"
-                onClick={() => setFeedbackOpen(true)}
-              >
-                Feedback
-              </button>
-
               <Link to="/sell" className="btn btn-primary btn-sm">
                 + Sell
               </Link>
@@ -106,8 +99,6 @@ export default function Navbar() {
           )}
         </div>
       </div>
-      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </nav>
   );
 }
-

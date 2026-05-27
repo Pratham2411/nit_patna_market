@@ -5,6 +5,7 @@ const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const Message = require('../models/Message');
 const Announcement = require('../models/Announcement');
+const AnnouncementRead = require('../models/AnnouncementRead');
 const Feedback = require('../models/Feedback');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
@@ -146,11 +147,14 @@ router.get('/announcements', async (req, res) => {
 
 router.post('/announcements', async (req, res) => {
   try {
-    const { message, active, expiresAt } = req.body;
+    const { title, message, priority, active, expiresAt } = req.body;
+    if (!title?.trim()) return res.status(400).json({ message: 'Title is required' });
     if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
 
     const announcement = await Announcement.create({
+      title: title.trim(),
       message: message.trim(),
+      priority: priority || 'normal',
       active: active !== false,
       createdBy: req.user.id,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
@@ -167,7 +171,9 @@ router.patch('/announcements/:id', async (req, res) => {
     const announcement = await Announcement.findById(req.params.id);
     if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
 
+    if (req.body.title !== undefined) announcement.title = req.body.title.trim();
     if (req.body.message !== undefined) announcement.message = req.body.message.trim();
+    if (req.body.priority !== undefined) announcement.priority = req.body.priority;
     if (req.body.active !== undefined) announcement.active = req.body.active;
     if (req.body.expiresAt !== undefined) {
       announcement.expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
@@ -184,6 +190,7 @@ router.delete('/announcements/:id', async (req, res) => {
   try {
     const announcement = await Announcement.findByIdAndDelete(req.params.id);
     if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
+    await AnnouncementRead.deleteMany({ announcement: announcement._id });
     res.json({ message: 'Announcement deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });

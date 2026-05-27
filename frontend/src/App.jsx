@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import AnnouncementBar from './components/AnnouncementBar';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Home from './pages/Home';
@@ -22,7 +21,6 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
-        <AnnouncementBar />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />

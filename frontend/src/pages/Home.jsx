@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
+import FeedbackSection from '../components/feedback/FeedbackSection';
 import api from '../api/axios';
 
 const CATEGORIES = ['All', 'Books', 'Electronics', 'Clothing', 'Furniture', 'Stationery', 'Sports', 'Other'];
@@ -59,6 +60,7 @@ export default function Home() {
               <Link to="/register" className="btn btn-primary btn-lg">Get Started Free</Link>
             )}
             <a href="#listings" className="btn btn-secondary btn-lg">Browse Listings</a>
+            <a href="#feedback" className="btn btn-secondary btn-lg">Give Feedback</a>
           </div>
         </section>
 
@@ -121,6 +123,8 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <FeedbackSection />
     </main>
   );
 }
