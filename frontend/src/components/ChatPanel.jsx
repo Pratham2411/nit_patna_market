@@ -16,7 +16,14 @@ const formatTime = (ts) =>
 const formatDateSep = (ts) =>
   new Date(ts).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
 
-export default function ChatPanel({ productId, otherUserId, otherUser: otherUserProp, product: productProp, compact = false }) {
+export default function ChatPanel({
+  productId,
+  otherUserId,
+  otherUser: otherUserProp,
+  product: productProp,
+  compact = false,
+  onMessageSent,
+}) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [product, setProduct] = useState(productProp || null);
@@ -85,6 +92,7 @@ export default function ChatPanel({ productId, otherUserId, otherUser: otherUser
       setMessages((prev) => [...prev, data]);
       setText('');
       textareaRef.current?.focus();
+      onMessageSent?.();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to send'));
     } finally {

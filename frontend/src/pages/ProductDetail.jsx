@@ -169,7 +169,10 @@ export default function ProductDetail() {
                 product.status === 'available' && user && (
                   <button
                     className="btn btn-primary btn-lg"
-                    onClick={() => navigate(`/messages?product=${product._id}&user=${product.seller._id}`)}
+                    onClick={() => {
+                      const sellerId = product.seller?._id || product.seller;
+                      navigate(`/messages?product=${product._id}&user=${sellerId}`);
+                    }}
                   >
                     💬 Chat with Seller
                   </button>

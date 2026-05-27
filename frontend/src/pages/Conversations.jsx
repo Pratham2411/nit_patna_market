@@ -21,6 +21,39 @@ const formatTime = (ts) => {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
+/** Build a draft conversation when opening chat from a listing (no messages yet). */
+function buildDraftFromProduct(product, otherUserId, currentUserId) {
+  const sellerId = String(product.seller?._id || product.seller);
+  const oid = String(otherUserId);
+
+  let otherUser;
+  if (oid === sellerId) {
+    otherUser = {
+      _id: sellerId,
+      name: product.seller?.name || 'Seller',
+      avatarUrl: product.seller?.avatarUrl || '',
+    };
+  } else if (String(currentUserId) === sellerId) {
+    otherUser = { _id: oid, name: 'Buyer' };
+  } else {
+    return null;
+  }
+
+  return {
+    product: {
+      _id: product._id,
+      title: product.title,
+      imageUrl: product.imageUrl,
+      price: product.price,
+      status: product.status,
+    },
+    otherUser,
+    lastMessage: null,
+    unread: 0,
+    isDraft: true,
+  };
+}
+
 export default function Conversations() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -29,6 +62,11 @@ export default function Conversations() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [draftConv, setDraftConv] = useState(null);
+  const [draftLoading, setDraftLoading] = useState(false);
+
+  const productParam = searchParams.get('product');
+  const userParam = searchParams.get('user');
 
   const fetchConvs = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -50,15 +88,51 @@ export default function Conversations() {
     return () => clearInterval(t);
   }, [fetchConvs]);
 
+  // Open existing thread or bootstrap a new chat from ?product=&user=
   useEffect(() => {
-    const pid = searchParams.get('product');
-    const oid = searchParams.get('user');
-    if (!pid || !oid || !convs.length) return;
-    const match = convs.find(
-      (c) => String(c.product._id) === pid && String(c.otherUser._id) === oid
+    if (!productParam || !userParam) {
+      setDraftConv(null);
+      return;
+    }
+
+    const existing = convs.find(
+      (c) =>
+        String(c.product._id) === productParam &&
+        String(c.otherUser._id) === userParam
     );
-    if (match) setSelected(match);
-  }, [searchParams, convs]);
+    if (existing) {
+      setSelected(existing);
+      setDraftConv(null);
+      return;
+    }
+
+    if (loading) return;
+
+    let cancelled = false;
+    setDraftLoading(true);
+    api
+      .get(`/products/${productParam}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const draft = buildDraftFromProduct(data, userParam, user?.id);
+        if (!draft) {
+          setDraftConv(null);
+          return;
+        }
+        setDraftConv(draft);
+        setSelected(draft);
+      })
+      .catch(() => {
+        if (!cancelled) setDraftConv(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDraftLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productParam, userParam, convs, loading, user?.id]);
 
   const selectConv = (conv) => {
     setSelected(conv);
@@ -66,6 +140,18 @@ export default function Conversations() {
   };
 
   const totalUnread = convs.reduce((n, c) => n + (c.unread || 0), 0);
+  const listItems = draftConv
+    ? [draftConv, ...convs.filter(
+        (c) =>
+          String(c.product._id) !== String(draftConv.product._id) ||
+          String(c.otherUser._id) !== String(draftConv.otherUser._id)
+      )]
+    : convs;
+
+  const showFullEmpty =
+    !loading && !draftLoading && listItems.length === 0 && !productParam;
+
+  const activeChat = selected;
 
   return (
     <main className="page-content">
@@ -76,7 +162,9 @@ export default function Conversations() {
             <p className="page-subtitle">
               {totalUnread > 0
                 ? `${totalUnread} unread message${totalUnread !== 1 ? 's' : ''}`
-                : 'Select a conversation to reply'}
+                : activeChat
+                  ? 'Send a message to start the conversation'
+                  : 'Select a conversation to reply'}
             </p>
           </div>
           <button
@@ -89,9 +177,9 @@ export default function Conversations() {
           </button>
         </div>
 
-        {loading ? (
+        {loading || draftLoading ? (
           <div className="loader-page"><div className="spinner" /></div>
-        ) : convs.length === 0 ? (
+        ) : showFullEmpty ? (
           <div className="empty-state inbox-empty">
             <div className="empty-icon">💬</div>
             <h3>No messages yet</h3>
@@ -100,20 +188,24 @@ export default function Conversations() {
         ) : (
           <div className="inbox-split">
             <div className="inbox-list">
-              {convs.map((conv) => {
+              {listItems.map((conv) => {
                 const key = `${conv.product._id}-${conv.otherUser._id}`;
                 const fallback = `https://picsum.photos/seed/${encodeURIComponent(conv.product?.title || key)}/96/96`;
-                const isMe = String(conv.lastMessage.sender._id) === String(user?.id);
-                const roleLabel = conv.otherRole === 'seller' ? 'Seller' : 'Buyer';
+                const isMe =
+                  conv.lastMessage &&
+                  String(conv.lastMessage.sender._id) === String(user?.id);
+                const roleLabel = conv.otherRole === 'seller' ? 'Seller' : conv.isDraft ? 'Seller' : 'Buyer';
                 const otherInitial = conv.otherUser.name?.charAt(0)?.toUpperCase() || '?';
-                const isActive = selected && String(selected.product._id) === String(conv.product._id)
-                  && String(selected.otherUser._id) === String(conv.otherUser._id);
+                const isActive =
+                  activeChat &&
+                  String(activeChat.product._id) === String(conv.product._id) &&
+                  String(activeChat.otherUser._id) === String(conv.otherUser._id);
 
                 return (
                   <button
                     key={key}
                     type="button"
-                    className={`inbox-item ${conv.unread > 0 ? 'has-unread' : ''} ${isActive ? 'active' : ''}`}
+                    className={`inbox-item ${conv.unread > 0 ? 'has-unread' : ''} ${isActive ? 'active' : ''} ${conv.isDraft ? 'is-draft' : ''}`}
                     onClick={() => selectConv(conv)}
                   >
                     <img
@@ -125,7 +217,11 @@ export default function Conversations() {
                     <div className="inbox-item-body">
                       <div className="inbox-item-top">
                         <span className="inbox-item-title">{conv.product?.title}</span>
-                        <span className="inbox-item-time">{formatTime(conv.lastMessage.createdAt)}</span>
+                        {conv.lastMessage && (
+                          <span className="inbox-item-time">
+                            {formatTime(conv.lastMessage.createdAt)}
+                          </span>
+                        )}
                       </div>
                       <div className="inbox-item-meta">
                         <span className="inbox-role-badge">{roleLabel}</span>
@@ -143,7 +239,9 @@ export default function Conversations() {
                         <span>₹{Number(conv.product?.price || 0).toLocaleString('en-IN')}</span>
                       </div>
                       <p className={`inbox-item-preview ${conv.unread > 0 ? 'unread' : ''}`}>
-                        {isMe ? 'You: ' : ''}{conv.lastMessage.text}
+                        {conv.isDraft
+                          ? 'New conversation — say hi!'
+                          : `${isMe ? 'You: ' : ''}${conv.lastMessage.text}`}
                       </p>
                     </div>
                     {conv.unread > 0 && (
@@ -155,14 +253,15 @@ export default function Conversations() {
             </div>
 
             <div className="inbox-chat-pane">
-              {selected ? (
+              {activeChat ? (
                 <ChatPanel
-                  key={`${selected.product._id}-${selected.otherUser._id}`}
-                  productId={selected.product._id}
-                  otherUserId={selected.otherUser._id}
-                  otherUser={selected.otherUser}
-                  product={selected.product}
+                  key={`${activeChat.product._id}-${activeChat.otherUser._id}`}
+                  productId={activeChat.product._id}
+                  otherUserId={activeChat.otherUser._id}
+                  otherUser={activeChat.otherUser}
+                  product={activeChat.product}
                   compact
+                  onMessageSent={() => fetchConvs(true)}
                 />
               ) : (
                 <div className="inbox-chat-placeholder">
