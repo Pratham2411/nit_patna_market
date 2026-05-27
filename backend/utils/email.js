@@ -185,13 +185,13 @@ const sendVerificationEmail = async ({ to, name, code }) => {
     console.log(`[email] Verification OTP sent to ${to}`);
     return { verifyUrl: message.verifyUrl };
   } catch (err) {
-    console.error('[email] Gmail SMTP send failed:', err.message);
+    // Log full error details for Render logs.
+    // Nodemailer usually includes SMTP response codes (err.code / err.response).
+    console.error('[email] Gmail SMTP send failed:', err);
+    const details = err?.message ? ` (${err.message})` : '';
 
     // Surface a clean 502 to the caller (authRoutes will forward it to client)
-    const e = new Error(
-      'Failed to send verification email. ' +
-      'Please check your Gmail SMTP credentials and try again.'
-    );
+    const e = new Error(`Failed to send verification email via Gmail SMTP.${details} Please verify your SMTP_USER/SMTP_PASS/SMTP_PORT settings.`);
     e.statusCode = 502;
     throw e;
   }
