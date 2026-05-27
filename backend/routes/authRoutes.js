@@ -17,6 +17,22 @@ const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const Message = require('../models/Message');
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+const VERIFICATION_OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+
+const isStrongPassword = (password) => {
+  const p = String(password || '');
+  if (p.length < 8) return { ok: false, message: 'Password must be at least 8 characters' };
+  if (!/[A-Z]/.test(p)) return { ok: false, message: 'Password must contain at least one uppercase letter' };
+  if (!/[a-z]/.test(p)) return { ok: false, message: 'Password must contain at least one lowercase letter' };
+  if (!/[0-9]/.test(p)) return { ok: false, message: 'Password must contain at least one number' };
+  return { ok: true };
+};
+
 const signToken = (user) => {
   const u = formatUser(user);
   return jwt.sign(
@@ -26,32 +42,16 @@ const signToken = (user) => {
   );
 };
 
-const NITP_EMAIL_DOMAIN = '@nitp.ac.in';
-const VERIFICATION_OTP_TTL_MS = 10 * 60 * 1000;
+const hashCode = (code) =>
+  crypto.createHash('sha256').update(String(code)).digest('hex');
 
-const hashVerificationCode = (code) => crypto.createHash('sha256').update(String(code)).digest('hex');
-
-const createVerificationCode = () => {
+const generateOtp = () => {
   const code = String(crypto.randomInt(100000, 1000000));
-  return { code, codeHash: hashVerificationCode(code) };
+  return { code, codeHash: hashCode(code) };
 };
 
-const setEmailVerificationCode = (user, codeHash) => {
-  user.emailVerificationTokenHash = codeHash;
-  user.emailVerificationExpires = new Date(Date.now() + VERIFICATION_OTP_TTL_MS);
-};
+// ─── Multer (avatar uploads) ────────────────────────────────────────────────
 
-const sendSignupVerification = async (user, res, code) => {
-  const emailResult = await sendVerificationEmail({ to: user.email, name: user.name, code });
-  return res.status(201).json({
-    message: 'Account created. Check your NITP email for the OTP before logging in.',
-    email: user.email,
-    verificationUrl: emailResult.verifyUrl,
-    ...(process.env.NODE_ENV !== 'production' && emailResult.code ? { verificationCode: emailResult.code } : {}),
-  });
-};
-
-// ─── Multer for avatar uploads ─────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '..', 'uploads');
@@ -59,20 +59,21 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\\s+/g, '_')}`);
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images are allowed'));
     cb(null, true);
   },
 });
 
-// POST /api/auth/register
+// ─── POST /api/auth/register ─────────────────────────────────────────────────
+
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -80,28 +81,39 @@ router.post('/register', async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
     }
 
-    const emailLower = String(email).toLowerCase().trim();
-    const isAdmin = isAdminEmail(emailLower);
-    if (!isAdmin && !emailLower.endsWith(NITP_EMAIL_DOMAIN)) {
-      return res.status(400).json({ message: `Use your ${NITP_EMAIL_DOMAIN} email to sign up` });
+    const passwordCheck = isStrongPassword(password);
+    if (!passwordCheck.ok) {
+      return res.status(400).json({ message: passwordCheck.message });
     }
+
+    const emailLower = email.toLowerCase().trim();
+    const isAdmin = isAdminEmail(emailLower);
+
     const existingUser = await User.findOne({ email: emailLower });
     if (existingUser) {
-      if (existingUser.isEmailVerified || isAdminEmail(existingUser.email)) {
-        return res.status(400).json({ message: 'Email already registered' });
+      if (existingUser.isEmailVerified || isAdmin) {
+        return res.status(400).json({ message: 'An account with this email already exists' });
       }
-
-      const { code, codeHash } = createVerificationCode();
-      setEmailVerificationCode(existingUser, codeHash);
+      // Unverified — resend OTP
+      const { code, codeHash } = generateOtp();
+      existingUser.emailVerificationTokenHash = codeHash;
+      existingUser.emailVerificationExpires = new Date(Date.now() + VERIFICATION_OTP_TTL_MS);
       await existingUser.save();
-      return await sendSignupVerification(existingUser, res, code);
+
+      const emailResult = await sendVerificationEmail({ to: emailLower, name: existingUser.name, code });
+      return res.status(201).json({
+        message: 'We sent a new verification code to your email.',
+        email: emailLower,
+        ...(process.env.NODE_ENV !== 'production' && emailResult.code ? { verificationCode: emailResult.code } : {}),
+      });
     }
 
-    const { code, codeHash } = createVerificationCode();
+    const { code, codeHash } = generateOtp();
     const user = await User.create({
       name: String(name).trim(),
       email: emailLower,
@@ -115,20 +127,30 @@ router.post('/register', async (req, res) => {
       return res.status(201).json({ token: signToken(user), user: formatUser(user) });
     }
 
-    return await sendSignupVerification(user, res, code);
+    const emailResult = await sendVerificationEmail({ to: emailLower, name: user.name, code });
+    return res.status(201).json({
+      message: 'Account created! Check your email for the 6-digit verification code.',
+      email: emailLower,
+      ...(process.env.NODE_ENV !== 'production' && emailResult.code ? { verificationCode: emailResult.code } : {}),
+    });
   } catch (err) {
+    console.error('Register error:', err);
     res.status(err.statusCode || 500).json({ message: err.message });
   }
 });
 
-// POST /api/auth/verify-email
+// ─── POST /api/auth/verify-email ─────────────────────────────────────────────
+
 router.post('/verify-email', async (req, res) => {
   try {
     const { email, code } = req.body;
-    if (!email || !code) return res.status(400).json({ message: 'Email and OTP are required' });
+    if (!email || !code) {
+      return res.status(400).json({ message: 'Email and verification code are required' });
+    }
 
-    const emailLower = String(email).toLowerCase().trim();
-    const codeHash = hashVerificationCode(String(code).trim());
+    const emailLower = email.toLowerCase().trim();
+    const codeHash = hashCode(String(code).trim());
+
     const user = await User.findOne({
       email: emailLower,
       emailVerificationTokenHash: codeHash,
@@ -136,7 +158,7 @@ router.post('/verify-email', async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'OTP is invalid or expired' });
+      return res.status(400).json({ message: 'The code is invalid or has expired. Request a new one.' });
     }
 
     user.isEmailVerified = true;
@@ -144,13 +166,15 @@ router.post('/verify-email', async (req, res) => {
     user.emailVerificationExpires = null;
     await user.save();
 
-    res.json({ message: 'Email verified. You can now log in.' });
+    res.json({ message: 'Email verified successfully. You can now log in.' });
   } catch (err) {
+    console.error('Verify email error:', err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// POST /api/auth/login
+// ─── POST /api/auth/login ─────────────────────────────────────────────────────
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -159,38 +183,46 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const emailLower = String(email).toLowerCase().trim();
+    const emailLower = email.toLowerCase().trim();
     const user = await User.findOne({ email: emailLower });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-    if (user.isBanned) return res.status(403).json({ message: 'Account suspended' });
-    if (!user.isEmailVerified && user.emailVerificationTokenHash && !isAdminEmail(user.email)) {
-      return res.status(403).json({ message: 'Please verify your email before logging in' });
+    if (!user) return res.status(400).json({ message: 'Invalid email or password' });
+    if (user.isBanned) return res.status(403).json({ message: 'This account has been suspended' });
+
+    if (!user.isEmailVerified && !isAdminEmail(user.email)) {
+      return res.status(403).json({
+        message: 'Please verify your email before logging in. Check your inbox for the code.',
+        requiresVerification: true,
+        email: emailLower,
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });
 
     res.json({ token: signToken(user), user: formatUser(user) });
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// GET /api/auth/me
-router.get('/me', auth, async (req, res) => {
+// ─── GET /api/auth/me ─────────────────────────────────────────────────────────
+
+router.get('/me', auth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// PATCH /api/auth/me  (phone + avatar)
+// ─── PATCH /api/auth/me ───────────────────────────────────────────────────────
+
 router.patch('/me', auth, upload.single('image'), async (req, res) => {
   try {
-    const user = req.userDoc; // actual mongoose doc
+    const user = req.userDoc;
     if (!user) return res.status(401).json({ message: 'User not found' });
 
     const { phone } = req.body;
     if (typeof phone === 'string') {
       const cleaned = phone.trim();
-      if (cleaned && !/^[0-9+()\\-\\s]{6,20}$/.test(cleaned)) {
+      if (cleaned && !/^[0-9+()\-\s]{6,20}$/.test(cleaned)) {
         return res.status(400).json({ message: 'Invalid phone number format' });
       }
       user.phone = cleaned;
@@ -207,19 +239,19 @@ router.patch('/me', auth, upload.single('image'), async (req, res) => {
   }
 });
 
-// DELETE /api/auth/me  (delete account)
+// ─── DELETE /api/auth/me ──────────────────────────────────────────────────────
+
 router.delete('/me', auth, async (req, res) => {
   try {
-    const userId = req.userDoc?._id?.toString?.() || req.user.id;
+    const userId = req.userDoc?._id?.toString() || req.user.id;
 
     const unlinkIfUploadsPath = (maybePath) => {
-      if (!maybePath || typeof maybePath !== 'string') return;
-      if (!maybePath.startsWith('/uploads/')) return;
+      if (!maybePath || !maybePath.startsWith('/uploads/')) return;
       const filePath = path.join(__dirname, '..', maybePath);
       try {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       } catch {
-        // ignore cleanup failures
+        // ignore
       }
     };
 
@@ -236,11 +268,10 @@ router.delete('/me', auth, async (req, res) => {
       User.deleteOne({ _id: userId }),
     ]);
 
-    res.json({ message: 'Account deleted' });
+    res.json({ message: 'Account deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 module.exports = router;
-

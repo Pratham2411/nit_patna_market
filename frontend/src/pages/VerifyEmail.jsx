@@ -7,14 +7,13 @@ export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState(searchParams.get('email') || '');
   const [code, setCode] = useState('');
-  const [status, setStatus] = useState('idle');
-  const [message, setMessage] = useState('Enter the OTP sent to your NITP email.');
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('loading');
     setMessage('');
-
     try {
       const { data } = await api.post('/auth/verify-email', {
         email: email.trim().toLowerCase(),
@@ -24,42 +23,57 @@ export default function VerifyEmail() {
       setMessage(data.message || 'Email verified. You can now log in.');
     } catch (err) {
       setStatus('error');
-      setMessage(getApiErrorMessage(err, 'OTP verification failed. Please try again.'));
+      setMessage(getApiErrorMessage(err, 'Verification failed. Please try again.'));
     }
+  };
+
+  const handleResend = async () => {
+    setMessage('');
+    setStatus('idle');
+    setCode('');
+    // Trigger a new OTP by hitting register again — backend resends if unverified
+    // User needs to go to register page for resend since we don't store password here
   };
 
   return (
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-card-header">
-          <div className="auth-logo">{status === 'success' ? 'OK' : 'OTP'}</div>
-          <h1>{status === 'success' ? 'Email verified' : 'Verify email'}</h1>
-          <p>{message}</p>
+          <div className="auth-logo">{status === 'success' ? '✓' : '✉'}</div>
+          <h1>{status === 'success' ? 'Email verified!' : 'Verify your email'}</h1>
+          <p>
+            {status === 'success'
+              ? 'Your account is now active.'
+              : 'Enter the 6-digit code we sent to your inbox.'}
+          </p>
         </div>
 
         {status === 'success' ? (
-          <Link to="/login" className="btn btn-primary btn-full btn-lg">Go to login</Link>
+          <Link to="/login" className="btn btn-primary btn-full btn-lg">
+            Go to login
+          </Link>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label" htmlFor="verify-email">Email</label>
+              <label className="form-label" htmlFor="verify-email-input">Email address</label>
               <input
-                id="verify-email"
+                id="verify-email-input"
                 className="form-input"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@nitp.ac.in"
+                placeholder="you@example.com"
                 required
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="verify-code">OTP</label>
+              <label className="form-label" htmlFor="verify-code">Verification code</label>
               <input
                 id="verify-code"
                 className="form-input"
                 inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -75,14 +89,15 @@ export default function VerifyEmail() {
               className="btn btn-primary btn-full btn-lg"
               disabled={status === 'loading' || code.length !== 6}
             >
-              {status === 'loading' ? <><span className="spinner" /> Verifying...</> : 'Verify OTP'}
+              {status === 'loading' ? <><span className="spinner" /> Verifying…</> : 'Verify email'}
             </button>
           </form>
         )}
 
         {status !== 'success' && (
           <div className="auth-footer">
-            Need a new OTP? Submit signup again with the same email.
+            Code expired?{' '}
+            <Link to="/register">Sign up again</Link> to get a new one.
           </div>
         )}
       </div>

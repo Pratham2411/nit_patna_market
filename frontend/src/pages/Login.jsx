@@ -6,9 +6,10 @@ import { getApiErrorMessage } from '../utils/apiError';
 
 export default function Login() {
   const { login } = useAuth();
-  const navigate  = useNavigate();
-  const [form, setForm]   = useState({ email: '', password: '' });
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) =>
@@ -17,13 +18,23 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setUnverifiedEmail('');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', form);
+      const { data } = await api.post('/auth/login', {
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
       login(data.token, data.user);
       navigate('/');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Login failed. Try again.'));
+      const responseData = err?.response?.data;
+      if (responseData?.requiresVerification) {
+        setUnverifiedEmail(responseData.email || form.email.trim().toLowerCase());
+        setError(responseData.message);
+      } else {
+        setError(getApiErrorMessage(err, 'Login failed. Try again.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -33,20 +44,20 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-card-header">
-          <div className="auth-logo">🎓</div>
+          <div className="auth-logo">🛒</div>
           <h1>Welcome back</h1>
           <p>Log in to your Campus Market account</p>
         </div>
 
         <form id="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="login-email">Email</label>
+            <label className="form-label" htmlFor="login-email">Email address</label>
             <input
               id="login-email"
               className="form-input"
               type="email"
               name="email"
-              placeholder="you@nitp.ac.in"
+              placeholder="you@example.com"
               value={form.email}
               onChange={handleChange}
               required
@@ -69,13 +80,21 @@ export default function Login() {
 
           {error && <p className="form-error">{error}</p>}
 
+          {unverifiedEmail && (
+            <p className="social-hint">
+              <Link to={`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}>
+                Verify your email →
+              </Link>
+            </p>
+          )}
+
           <button
             id="login-submit"
             type="submit"
             className="btn btn-primary btn-full btn-lg"
             disabled={loading}
           >
-            {loading ? <><span className="spinner" /> Logging in…</> : 'Log In'}
+            {loading ? <><span className="spinner" /> Logging in…</> : 'Log in'}
           </button>
         </form>
 

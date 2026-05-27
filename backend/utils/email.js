@@ -1,122 +1,200 @@
+/**
+ * email.js — Campus Market mail service
+ *
+ * Uses Nodemailer with Gmail SMTP (or any SMTP provider).
+ * Required env vars:
+ *   SMTP_HOST   — e.g. smtp.gmail.com
+ *   SMTP_PORT   — e.g. 587
+ *   SMTP_USER   — your Gmail address
+ *   SMTP_PASS   — your Gmail App Password (NOT your real password)
+ *   FROM_EMAIL  — display "from" address (usually same as SMTP_USER)
+ *
+ * Optional:
+ *   FROM_NAME       — sender display name  (default: "Campus Market")
+ *   SMTP_SECURE     — "true" for port 465, leave unset/false for 587
+ *   SMTP_TIMEOUT_MS — connection timeout in ms (default: 10000)
+ *   FRONTEND_URL    — base URL for verify links (default: http://localhost:3000)
+ */
+
 const nodemailer = require('nodemailer');
 
-const requiredSmtpKeys = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
+// ─── Config helpers ───────────────────────────────────────────────────────────
 
-const hasSmtpConfig = () => requiredSmtpKeys.every((key) => !!process.env[key]);
-const hasBrevoApiConfig = () => !!process.env.BREVO_API_KEY;
+/**
+ * Returns true only when all four required SMTP env vars are present.
+ * This check is used to decide whether to actually send vs. log in dev mode.
+ */
+const hasSmtpConfig = () =>
+  ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'].every(
+    (key) => !!process.env[key]
+  );
 
-const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
+const getFrontendUrl = () =>
+  (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-const getFromAddress = () => {
-  const from = process.env.SMTP_FROM || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER;
-  const match = String(from || '').match(/<([^>]+)>/);
-  return match ? match[1] : from;
+const getFromName = () => process.env.FROM_NAME || 'Campus Market';
+
+const getFromHeader = () =>
+  `${getFromName()} <${process.env.FROM_EMAIL || process.env.SMTP_USER}>`;
+
+// ─── Reusable transporter (lazy-initialised, one instance per process) ────────
+
+let _transporter = null;
+
+/**
+ * Returns a cached Nodemailer transporter configured for Gmail SMTP.
+ * Lazily created on first call so env vars are read at send-time, not
+ * at module-load time (important for some deployment platforms).
+ */
+const getTransporter = () => {
+  if (_transporter) return _transporter;
+
+  _transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,              // smtp.gmail.com
+    port: Number(process.env.SMTP_PORT),      // 587
+    // port 465 → secure:true (TLS from the start)
+    // port 587 → secure:false (plain then STARTTLS upgrade)
+    secure: String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true',
+    auth: {
+      user: process.env.SMTP_USER,            // youraddress@gmail.com
+      pass: process.env.SMTP_PASS,            // Gmail App Password (16 chars)
+    },
+    connectionTimeout: Number(process.env.SMTP_TIMEOUT_MS || 10000),
+    greetingTimeout:   Number(process.env.SMTP_TIMEOUT_MS || 10000),
+    socketTimeout:     Number(process.env.SMTP_TIMEOUT_MS || 10000),
+  });
+
+  return _transporter;
 };
 
-const getFromName = () => process.env.BREVO_FROM_NAME || 'NIT Patna Market';
+// ─── Email template builder ───────────────────────────────────────────────────
 
+/**
+ * Builds the plain-text and HTML bodies for the OTP verification email.
+ * Returns { verifyUrl, subject, text, html }
+ */
 const buildVerificationMessage = ({ to, name, code }) => {
-  const verifyUrl = `${getFrontendUrl().replace(/\/$/, '')}/verify-email?email=${encodeURIComponent(to)}`;
-  const subject = 'Your NIT Patna Market verification code';
-  const text = `Hi ${name},\n\nYour NIT Patna Market verification code is: ${code}\n\nEnter it here: ${verifyUrl}\n\nThis code expires in 10 minutes.`;
+  const verifyUrl =
+    `${getFrontendUrl()}/verify-email?email=${encodeURIComponent(to)}`;
+
+  const subject = 'Your Campus Market verification code';
+
+  const text = [
+    `Hi ${name},`,
+    ``,
+    `Your Campus Market verification code is:`,
+    ``,
+    `  ${code}`,
+    ``,
+    `This code expires in 10 minutes.`,
+    ``,
+    `Or open this link to verify your email:`,
+    `${verifyUrl}`,
+    ``,
+    `If you did not create an account, you can ignore this email.`,
+  ].join('\n');
+
   const html = `
-    <p>Hi ${name},</p>
-    <p>Your NIT Patna Market verification code is:</p>
-    <p style="font-size: 24px; font-weight: 700; letter-spacing: 4px;">${code}</p>
-    <p>Enter it here: <a href="${verifyUrl}">Verify email</a></p>
-    <p>This code expires in 10 minutes.</p>
-  `;
+    <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;
+                border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+
+      <!-- Header -->
+      <div style="background:#18181b;padding:24px 32px">
+        <h2 style="color:#ffffff;margin:0;font-size:1.2rem">Campus Market</h2>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:32px">
+        <p style="margin-top:0">Hi <strong>${name}</strong>,</p>
+        <p>Use the code below to verify your email address.</p>
+
+        <!-- OTP box -->
+        <div style="text-align:center;margin:28px 0">
+          <span style="display:inline-block;font-size:36px;font-weight:700;
+                       letter-spacing:10px;background:#f4f4f5;border-radius:8px;
+                       padding:16px 28px;color:#18181b;font-family:monospace">
+            ${code}
+          </span>
+        </div>
+
+        <p style="color:#6b7280;font-size:0.875rem">
+          ⏱ This code expires in <strong>10 minutes</strong>.
+        </p>
+        <p style="color:#6b7280;font-size:0.875rem">
+          You can also
+          <a href="${verifyUrl}" style="color:#18181b">click here</a>
+          to open the verification page.
+        </p>
+        <p style="color:#9ca3af;font-size:0.8rem;margin-bottom:0">
+          If you did not create an account, please ignore this email.
+        </p>
+      </div>
+    </div>`;
 
   return { verifyUrl, subject, text, html };
 };
 
-const throwEmailError = (err, provider) => {
-  console.error(`Verification email failed via ${provider}:`, err.message);
-  const friendly = new Error(`Could not send verification email via ${provider}. Check email provider settings and try again.`);
-  friendly.statusCode = 502;
-  throw friendly;
-};
+// ─── Public API ───────────────────────────────────────────────────────────────
 
-const sendWithBrevoApi = async ({ to, name, subject, text, html }) => {
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      accept: 'application/json',
-      'api-key': process.env.BREVO_API_KEY,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      sender: { name: getFromName(), email: getFromAddress() },
-      to: [{ email: to, name }],
-      subject,
-      textContent: text,
-      htmlContent: html,
-    }),
-  });
-
-  if (!response.ok) {
-    let detail = '';
-    try {
-      detail = JSON.stringify(await response.json());
-    } catch {
-      detail = await response.text();
-    }
-    throw new Error(`Brevo API ${response.status}: ${detail}`);
-  }
-};
-
-const sendWithSmtp = async ({ to, subject, text, html }) => {
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: String(process.env.SMTP_SECURE || '').toLowerCase() === 'true',
-    connectionTimeout: Number(process.env.SMTP_TIMEOUT_MS || 10000),
-    greetingTimeout: Number(process.env.SMTP_TIMEOUT_MS || 10000),
-    socketTimeout: Number(process.env.SMTP_TIMEOUT_MS || 10000),
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject,
-    text,
-    html,
-  });
-};
-
+/**
+ * sendVerificationEmail({ to, name, code })
+ *
+ * Sends a 6-digit OTP email via Gmail SMTP.
+ *
+ * In development (NODE_ENV !== 'production') with no SMTP config set,
+ * the OTP is printed to the console instead so you can still test locally.
+ *
+ * Returns { verifyUrl }  on success.
+ * Returns { verifyUrl, code }  only in dev console-fallback mode.
+ * Throws an Error (statusCode=502) on send failure.
+ */
 const sendVerificationEmail = async ({ to, name, code }) => {
   const message = buildVerificationMessage({ to, name, code });
 
-  if (!hasBrevoApiConfig() && !hasSmtpConfig()) {
+  // ── Dev fallback: no SMTP configured → just log ──────────────────────────
+  if (!hasSmtpConfig()) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Email service is not configured');
+      const e = new Error(
+        'Email service is not configured. ' +
+        'Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in your environment.'
+      );
+      e.statusCode = 502;
+      throw e;
     }
-    console.log(`Email verification OTP for ${to}: ${code}`);
-    console.log(`Email verification page for ${to}: ${message.verifyUrl}`);
+    // Non-production: print OTP so developers can test without email setup
+    console.log('\n' + '─'.repeat(50));
+    console.log('[DEV MODE] Verification email not sent — SMTP not configured');
+    console.log(`  Recipient : ${to}`);
+    console.log(`  OTP code  : ${code}`);
+    console.log(`  Verify URL: ${message.verifyUrl}`);
+    console.log('─'.repeat(50) + '\n');
     return { verifyUrl: message.verifyUrl, code };
   }
 
-  if (hasBrevoApiConfig()) {
-    try {
-      await sendWithBrevoApi({ to, name, ...message });
-      return { verifyUrl: message.verifyUrl };
-    } catch (err) {
-      if (!hasSmtpConfig()) throwEmailError(err, 'Brevo API');
-      console.error('Brevo API email failed; trying SMTP fallback:', err.message);
-    }
-  }
-
+  // ── Send via Gmail SMTP ───────────────────────────────────────────────────
   try {
-    await sendWithSmtp({ to, ...message });
-  } catch (err) {
-    throwEmailError(err, 'SMTP');
-  }
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: getFromHeader(),          // "Campus Market <you@gmail.com>"
+      to,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    });
 
-  return { verifyUrl: message.verifyUrl };
+    console.log(`[email] Verification OTP sent to ${to}`);
+    return { verifyUrl: message.verifyUrl };
+  } catch (err) {
+    console.error('[email] Gmail SMTP send failed:', err.message);
+
+    // Surface a clean 502 to the caller (authRoutes will forward it to client)
+    const e = new Error(
+      'Failed to send verification email. ' +
+      'Please check your Gmail SMTP credentials and try again.'
+    );
+    e.statusCode = 502;
+    throw e;
+  }
 };
 
 module.exports = { sendVerificationEmail };

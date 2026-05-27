@@ -1,6 +1,7 @@
-# College Marketplace
+# Campus Marketplace
 
-A full-stack MERN application where college students can list and browse second-hand items for sale.
+A full-stack MERN application where users can list and browse second-hand items for sale.
+Open to **any valid email address** — no domain restriction.
 
 ## Tech Stack
 - **Backend:** Node.js, Express.js, MongoDB (Mongoose), JWT, Multer
@@ -72,29 +73,27 @@ Copy `backend/.env.example` to `backend/.env` and fill in your values (`.env` is
 **Local (`backend/.env`):**
 ```
 PORT=5000
-MONGO_URI=mongodb+srv://<user>:<password>@cluster0.vcxwz6h.mongodb.net/college-marketplace?retryWrites=true&w=majority&appName=Cluster0
-JWT_SECRET=your_long_random_secret_here
+MONGO_URI=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/campus-market?retryWrites=true&w=majority
+JWT_SECRET=replace_with_long_random_string
 FRONTEND_URL=http://localhost:3000
-SMTP_HOST=smtp-relay.brevo.com
+
+# Gmail SMTP
+SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=your_smtp_username
-SMTP_PASS=your_smtp_password
-SMTP_FROM="NIT Patna Market <no-reply@example.com>"
-SMTP_TIMEOUT_MS=10000
-BREVO_API_KEY=your_brevo_api_key
-BREVO_FROM_EMAIL=no-reply@example.com
-BREVO_FROM_NAME=NIT Patna Market
+SMTP_USER=your_gmail@gmail.com
+SMTP_PASS=your_16_char_app_password
+FROM_NAME=Campus Market
+FROM_EMAIL=your_gmail@gmail.com
+
+NODE_ENV=development
 ```
 
-For local development, if SMTP variables are not set, the backend prints the verification OTP in the server console.
+If `SMTP_USER`/`SMTP_PASS` are not set in development, the OTP is printed in the backend console instead of emailed.
 
-For Brevo SMTP, use `smtp-relay.brevo.com`, port `587`, and `SMTP_SECURE=false`. Port `465` should use `SMTP_SECURE=true`.
+**Render env vars (do not commit secrets):**
+`MONGO_URI`, `JWT_SECRET`, `FRONTEND_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `FROM_NAME`, `FROM_EMAIL`, `NODE_ENV=production`
 
-For Render, prefer `BREVO_API_KEY` with a verified `BREVO_FROM_EMAIL`; it sends over HTTPS and avoids SMTP port timeouts. SMTP remains as a fallback if the API key is not set.
-
-**Render (dashboard — do not commit secrets):** set `MONGO_URI`, `JWT_SECRET`, `FRONTEND_URL=https://nit-patna-market.vercel.app`, and the SMTP variables above.
-
-**Vercel:** `VITE_API_URL=https://nit-patna-market.onrender.com` (or `.../api` — both work)
+**Vercel env var:** `VITE_API_URL=https://<your-render-service>.onrender.com`
 
 **Vercel SPA routing:** `frontend/vercel.json` rewrites all routes to `index.html` so refresh on `/messages`, `/product/:id`, etc. does not 404.

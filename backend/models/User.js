@@ -5,8 +5,14 @@ const { isAdminEmail } = require('../config/admins');
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6 },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: { type: String, required: true },
 
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     isBanned: { type: Boolean, default: false },
@@ -14,19 +20,19 @@ const userSchema = new mongoose.Schema(
     emailVerificationTokenHash: { type: String, default: '' },
     emailVerificationExpires: { type: Date, default: null },
 
-    // Optional user profile fields
     phone: { type: String, default: '', trim: true },
-    avatarUrl: { type: String, default: '' }, // stored as /uploads/<filename>
+    avatarUrl: { type: String, default: '' },
   },
   { timestamps: true }
 );
 
 userSchema.pre('save', async function (next) {
+  // Promote to admin if email is in the admin list
   if (isAdminEmail(this.email)) this.role = 'admin';
+  // Only hash password when it's been changed
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 module.exports = mongoose.model('User', userSchema);
-
