@@ -9,7 +9,6 @@ export default function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) =>
@@ -18,7 +17,6 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setUnverifiedEmail('');
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', {
@@ -28,13 +26,7 @@ export default function Login() {
       login(data.token, data.user);
       navigate('/');
     } catch (err) {
-      const responseData = err?.response?.data;
-      if (responseData?.requiresVerification) {
-        setUnverifiedEmail(responseData.email || form.email.trim().toLowerCase());
-        setError(responseData.message);
-      } else {
-        setError(getApiErrorMessage(err, 'Login failed. Try again.'));
-      }
+      setError(getApiErrorMessage(err, 'Login failed. Try again.'));
     } finally {
       setLoading(false);
     }
@@ -79,14 +71,6 @@ export default function Login() {
           </div>
 
           {error && <p className="form-error">{error}</p>}
-
-          {unverifiedEmail && (
-            <p className="social-hint">
-              <Link to={`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}>
-                Verify your email →
-              </Link>
-            </p>
-          )}
 
           <button
             id="login-submit"

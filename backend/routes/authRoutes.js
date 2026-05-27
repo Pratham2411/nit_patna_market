@@ -4,13 +4,11 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
-const crypto = require('crypto');
 
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { formatUser } = require('../utils/formatUser');
 const { isAdminEmail } = require('../config/admins');
-const { sendVerificationEmail } = require('../utils/email');
 
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
@@ -19,7 +17,7 @@ const Message = require('../models/Message');
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-const VERIFICATION_OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const NITP_DOMAIN = '@nitp.ac.in';
 
 const isValidEmail = (email) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
@@ -33,6 +31,12 @@ const isStrongPassword = (password) => {
   return { ok: true };
 };
 
+const isAllowedSignupEmail = (emailLower) => {
+  // Admin accounts can sign up with their configured emails.
+  if (isAdminEmail(emailLower)) return true;
+  return emailLower.endsWith(NITP_DOMAIN);
+};
+
 const signToken = (user) => {
   const u = formatUser(user);
   return jwt.sign(
@@ -40,14 +44,6 @@ const signToken = (user) => {
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
-};
-
-const hashCode = (code) =>
-  crypto.createHash('sha256').update(String(code)).digest('hex');
-
-const generateOtp = () => {
-  const code = String(crypto.randomInt(100000, 1000000));
-  return { code, codeHash: hashCode(code) };
 };
 
 // ─── Multer (avatar uploads) ────────────────────────────────────────────────
@@ -92,84 +88,39 @@ router.post('/register', async (req, res) => {
     }
 
     const emailLower = email.toLowerCase().trim();
-    const isAdmin = isAdminEmail(emailLower);
 
-    const existingUser = await User.findOne({ email: emailLower });
-    if (existingUser) {
-      if (existingUser.isEmailVerified || isAdmin) {
-        return res.status(400).json({ message: 'An account with this email already exists' });
-      }
-      // Unverified — resend OTP
-      const { code, codeHash } = generateOtp();
-      existingUser.emailVerificationTokenHash = codeHash;
-      existingUser.emailVerificationExpires = new Date(Date.now() + VERIFICATION_OTP_TTL_MS);
-      await existingUser.save();
-
-      const emailResult = await sendVerificationEmail({ to: emailLower, name: existingUser.name, code });
-      return res.status(201).json({
-        message: 'We sent a new verification code to your email.',
-        email: emailLower,
-        ...(process.env.NODE_ENV !== 'production' && emailResult.code ? { verificationCode: emailResult.code } : {}),
-      });
+    // Email/domain restriction for signup:
+    // - allowed: @nitp.ac.in
+    // - exception: the 3 admin emails configured in backend/config/admins.js
+    if (!isAllowedSignupEmail(emailLower)) {
+      return res.status(400).json({ message: `Use your ${NITP_DOMAIN} email to sign up` });
     }
 
-    const { code, codeHash } = generateOtp();
+    // Prevent duplicates (unique index will also protect on DB level)
+    const existingUser = await User.findOne({ email: emailLower });
+    if (existingUser) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
+    }
+
     const user = await User.create({
       name: String(name).trim(),
       email: emailLower,
       password,
-      isEmailVerified: isAdmin,
-      emailVerificationTokenHash: isAdmin ? '' : codeHash,
-      emailVerificationExpires: isAdmin ? null : new Date(Date.now() + VERIFICATION_OTP_TTL_MS),
+      // Email verification removed: consider signup as immediately active.
+      isEmailVerified: true,
+      emailVerificationTokenHash: '',
+      emailVerificationExpires: null,
     });
 
-    if (isAdmin) {
-      return res.status(201).json({ token: signToken(user), user: formatUser(user) });
+    return res.status(201).json({ token: signToken(user), user: formatUser(user) });
+  } catch (err) {
+    // Duplicate key (unique email) handling
+    if (err && err.code === 11000) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
     }
 
-    const emailResult = await sendVerificationEmail({ to: emailLower, name: user.name, code });
-    return res.status(201).json({
-      message: 'Account created! Check your email for the 6-digit verification code.',
-      email: emailLower,
-      ...(process.env.NODE_ENV !== 'production' && emailResult.code ? { verificationCode: emailResult.code } : {}),
-    });
-  } catch (err) {
     console.error('Register error:', err);
     res.status(err.statusCode || 500).json({ message: err.message });
-  }
-});
-
-// ─── POST /api/auth/verify-email ─────────────────────────────────────────────
-
-router.post('/verify-email', async (req, res) => {
-  try {
-    const { email, code } = req.body;
-    if (!email || !code) {
-      return res.status(400).json({ message: 'Email and verification code are required' });
-    }
-
-    const emailLower = email.toLowerCase().trim();
-    const codeHash = hashCode(String(code).trim());
-
-    const user = await User.findOne({
-      email: emailLower,
-      emailVerificationTokenHash: codeHash,
-      emailVerificationExpires: { $gt: new Date() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'The code is invalid or has expired. Request a new one.' });
-    }
-
-    user.isEmailVerified = true;
-    user.emailVerificationTokenHash = '';
-    user.emailVerificationExpires = null;
-    await user.save();
-
-    res.json({ message: 'Email verified successfully. You can now log in.' });
-  } catch (err) {
-    console.error('Verify email error:', err);
-    res.status(500).json({ message: err.message });
   }
 });
 
@@ -187,14 +138,6 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: emailLower });
     if (!user) return res.status(400).json({ message: 'Invalid email or password' });
     if (user.isBanned) return res.status(403).json({ message: 'This account has been suspended' });
-
-    if (!user.isEmailVerified && !isAdminEmail(user.email)) {
-      return res.status(403).json({
-        message: 'Please verify your email before logging in. Check your inbox for the code.',
-        requiresVerification: true,
-        email: emailLower,
-      });
-    }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });

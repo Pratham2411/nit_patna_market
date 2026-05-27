@@ -1,7 +1,7 @@
 const ADMIN_EMAILS = [
   'prathamraj2411@gmail.com',
   'adityamadhav1509@gmail.com',
-  'gautamr.ug23.ee@nitp.ac.in',
+  'gautamprimary5@gmail.com',
 ];
 
 const isAdminEmail = (email) =>
