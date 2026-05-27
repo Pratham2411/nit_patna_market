@@ -41,7 +41,9 @@ app.use('/api/products',  require('./routes/productRoutes'));
 app.use('/api/messages',  require('./routes/messageRoutes'));
 app.use('/api/comments',  require('./routes/commentRoutes'));
 app.use('/api/reviews',   require('./routes/reviewRoutes'));
-app.use('/api/admin',     require('./routes/adminRoutes'));
+app.use('/api/admin',          require('./routes/adminRoutes'));
+app.use('/api/announcements',  require('./routes/announcementRoutes'));
+app.use('/api/feedback',       require('./routes/feedbackRoutes'));
 
 app.get('/', (req, res) =>
   res.json({ message: '🎓 College Marketplace API is running' })
