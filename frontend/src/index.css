@@ -492,6 +492,12 @@ button { cursor: pointer; font-family: var(--font); }
   margin-top: 6px;
 }
 
+.form-success {
+  font-size: 0.85rem;
+  color: var(--success);
+  margin-top: 6px;
+}
+
 /* ============================================================
    AUTH CARD (Login / Register)
    ============================================================ */

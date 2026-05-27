@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import ProductDetail from './pages/ProductDetail';
 import SellItem from './pages/SellItem';
 import Dashboard from './pages/Dashboard';
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/sell" element={<ProtectedRoute><SellItem /></ProtectedRoute>} />
           <Route path="/sell/:id" element={<ProtectedRoute><SellItem /></ProtectedRoute>} />

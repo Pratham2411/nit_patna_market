@@ -13,6 +13,7 @@ const formatUser = (user) => ({
   role: resolveRole(user),
   isAdmin: resolveRole(user) === 'admin',
   isBanned: !!user.isBanned,
+  isEmailVerified: !!user.isEmailVerified,
   phone: user.phone || '',
   avatarUrl: user.avatarUrl || '',
 });

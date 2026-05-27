@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema(
 
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     isBanned: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerificationTokenHash: { type: String, default: '' },
+    emailVerificationExpires: { type: Date, default: null },
 
     // Optional user profile fields
     phone: { type: String, default: '', trim: true },

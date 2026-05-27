@@ -75,9 +75,17 @@ PORT=5000
 MONGO_URI=mongodb+srv://<user>:<password>@cluster0.vcxwz6h.mongodb.net/college-marketplace?retryWrites=true&w=majority&appName=Cluster0
 JWT_SECRET=your_long_random_secret_here
 FRONTEND_URL=http://localhost:3000
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+SMTP_FROM="NIT Patna Market <no-reply@example.com>"
 ```
 
-**Render (dashboard — do not commit secrets):** set `MONGO_URI`, `JWT_SECRET`, and `FRONTEND_URL=https://nit-patna-market.vercel.app`
+For local development, if SMTP variables are not set, the backend prints the verification link in the server console.
+
+**Render (dashboard — do not commit secrets):** set `MONGO_URI`, `JWT_SECRET`, `FRONTEND_URL=https://nit-patna-market.vercel.app`, and the SMTP variables above.
 
 **Vercel:** `VITE_API_URL=https://nit-patna-market.onrender.com` (or `.../api` — both work)
 
