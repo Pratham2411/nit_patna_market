@@ -5,6 +5,8 @@ import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
 import ChatPanel from '../components/ChatPanel';
 
+const CONVERSATIONS_REFRESH_INTERVAL = 30000;
+
 const formatTime = (ts) => {
   const d = new Date(ts);
   const now = new Date();
@@ -44,7 +46,7 @@ export default function Conversations() {
 
   useEffect(() => {
     fetchConvs();
-    const t = setInterval(() => fetchConvs(true), 8000);
+    const t = setInterval(() => fetchConvs(true), CONVERSATIONS_REFRESH_INTERVAL);
     return () => clearInterval(t);
   }, [fetchConvs]);
 

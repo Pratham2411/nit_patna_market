@@ -5,7 +5,10 @@ import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
 import { getApiErrorMessage } from '../utils/apiError';
 
-const POLL_INTERVAL = 3000;
+const POLL_INTERVAL = 15000;
+
+const messagesSignature = (messages) =>
+  messages.map((message) => `${message._id}:${message.read}:${message.updatedAt || message.createdAt}`).join('|');
 
 const formatTime = (ts) =>
   new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -44,7 +47,7 @@ export default function ChatPanel({ productId, otherUserId, otherUser: otherUser
   const fetchMessages = useCallback(async (silent = false) => {
     try {
       const { data } = await api.get(`/messages/${productId}/${otherUserId}`);
-      setMessages(data);
+      setMessages((prev) => (messagesSignature(prev) === messagesSignature(data) ? prev : data));
       if (!otherUser && data.length > 0) {
         const msg = data.find((m) => String(m.sender._id) !== String(user?.id));
         if (msg) setOtherUser(msg.sender);
