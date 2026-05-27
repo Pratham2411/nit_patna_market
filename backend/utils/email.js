@@ -14,9 +14,15 @@
  *   SMTP_SECURE     — "true" for port 465, leave unset/false for 587
  *   SMTP_TIMEOUT_MS — connection timeout in ms (default: 10000)
  *   FRONTEND_URL    — base URL for verify links (default: http://localhost:3000)
+ *
+ * NOTE: family:4 forces IPv4 resolution — required on Render (free tier) because
+ * smtp.gmail.com resolves to an IPv6 address that is unreachable from Render's network.
  */
 
 const nodemailer = require('nodemailer');
+// Force IPv4 DNS resolution globally so smtp.gmail.com never resolves to an
+// unreachable IPv6 address on hosting platforms like Render.
+require('dns').setDefaultResultOrder('ipv4first');
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
 
@@ -55,6 +61,9 @@ const getTransporter = () => {
     // port 465 → secure:true (TLS from the start)
     // port 587 → secure:false (plain then STARTTLS upgrade)
     secure: String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true',
+    // family:4 forces an IPv4 TCP socket — critical on Render free tier where
+    // smtp.gmail.com resolves to IPv6 (ENETUNREACH) instead of IPv4.
+    family: 4,
     auth: {
       user: process.env.SMTP_USER,            // youraddress@gmail.com
       pass: process.env.SMTP_PASS,            // Gmail App Password (16 chars)
