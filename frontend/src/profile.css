@@ -77,6 +77,22 @@
   gap: 12px;
 }
 
+.profile-avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.profile-avatar-remove {
+  color: var(--text-secondary);
+}
+
+.profile-avatar-remove:hover {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
 .profile-avatar-ring {
   width: 120px;
   height: 120px;

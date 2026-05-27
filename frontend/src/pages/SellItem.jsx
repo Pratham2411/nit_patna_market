@@ -69,13 +69,9 @@ export default function SellItem() {
       if (imageFile) payload.append('image', imageFile);
 
       if (isEdit) {
-        await api.put(`/products/${id}`, payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.put(`/products/${id}`, payload);
       } else {
-        await api.post('/products', payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post('/products', payload);
       }
       navigate('/dashboard');
     } catch (err) {

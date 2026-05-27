@@ -40,10 +40,27 @@ const isAllowedSignupEmail = (emailLower) => {
 const signToken = (user) => {
   const u = formatUser(user);
   return jwt.sign(
-    { id: u.id, name: u.name, email: u.email, role: u.role, isAdmin: u.isAdmin },
+    {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      isAdmin: u.isAdmin,
+      avatarUrl: u.avatarUrl,
+    },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
+};
+
+const unlinkIfUploadsPath = (maybePath) => {
+  if (!maybePath || !maybePath.startsWith('/uploads/')) return;
+  const filePath = path.join(__dirname, '..', maybePath);
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch {
+    // ignore
+  }
 };
 
 // ─── Multer (avatar uploads) ────────────────────────────────────────────────
@@ -151,8 +168,14 @@ router.post('/login', async (req, res) => {
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
 
-router.get('/me', auth, (req, res) => {
-  res.json({ user: req.user });
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ user: formatUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // ─── PATCH /api/auth/me ───────────────────────────────────────────────────────
@@ -162,7 +185,8 @@ router.patch('/me', auth, upload.single('image'), async (req, res) => {
     const user = req.userDoc;
     if (!user) return res.status(401).json({ message: 'User not found' });
 
-    const { phone } = req.body;
+    const { phone, removeAvatar } = req.body;
+
     if (typeof phone === 'string') {
       const cleaned = phone.trim();
       if (cleaned && !/^[0-9+()\-\s]{6,20}$/.test(cleaned)) {
@@ -171,7 +195,16 @@ router.patch('/me', auth, upload.single('image'), async (req, res) => {
       user.phone = cleaned;
     }
 
-    if (req.file) {
+    const shouldRemoveAvatar =
+      removeAvatar === true ||
+      removeAvatar === 'true' ||
+      removeAvatar === '1';
+
+    if (shouldRemoveAvatar) {
+      unlinkIfUploadsPath(user.avatarUrl);
+      user.avatarUrl = '';
+    } else if (req.file) {
+      unlinkIfUploadsPath(user.avatarUrl);
       user.avatarUrl = `/uploads/${req.file.filename}`;
     }
 
@@ -187,16 +220,6 @@ router.patch('/me', auth, upload.single('image'), async (req, res) => {
 router.delete('/me', auth, async (req, res) => {
   try {
     const userId = req.userDoc?._id?.toString() || req.user.id;
-
-    const unlinkIfUploadsPath = (maybePath) => {
-      if (!maybePath || !maybePath.startsWith('/uploads/')) return;
-      const filePath = path.join(__dirname, '..', maybePath);
-      try {
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      } catch {
-        // ignore
-      }
-    };
 
     unlinkIfUploadsPath(req.userDoc?.avatarUrl);
 

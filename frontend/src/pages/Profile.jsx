@@ -12,15 +12,23 @@ export default function Profile() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const [phone, setPhone] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState('');
 
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(''), 3500);
+  };
+
   const loadMe = async () => {
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       const { data } = await api.get('/auth/me');
@@ -58,6 +66,7 @@ export default function Profile() {
   const handleSave = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setSubmitting(true);
 
     try {
@@ -65,9 +74,7 @@ export default function Profile() {
       payload.append('phone', phone);
       if (avatarFile) payload.append('image', avatarFile);
 
-      const { data } = await api.patch('/auth/me', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.patch('/auth/me', payload);
 
       const user = data.user;
       updateUser(user);
@@ -75,10 +82,39 @@ export default function Profile() {
       setCurrentAvatarUrl(user.avatarUrl || '');
       setAvatarFile(null);
       setAvatarPreview('');
+      showSuccess('Profile updated successfully');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!currentAvatarUrl) return;
+    if (!confirm('Remove your profile picture?')) return;
+
+    setError('');
+    setSuccess('');
+    setRemovingAvatar(true);
+
+    try {
+      const payload = new FormData();
+      payload.append('phone', phone);
+      payload.append('removeAvatar', 'true');
+
+      const { data } = await api.patch('/auth/me', payload);
+
+      const user = data.user;
+      updateUser(user);
+      setCurrentAvatarUrl('');
+      setAvatarFile(null);
+      setAvatarPreview('');
+      showSuccess('Profile picture removed');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to remove profile picture');
+    } finally {
+      setRemovingAvatar(false);
     }
   };
 
@@ -138,6 +174,7 @@ export default function Profile() {
           </div>
 
           {error && <p className="form-error">{error}</p>}
+          {success && <p className="form-success">{success}</p>}
 
           <div className="profile-grid">
             <div className="glass-card profile-card">
@@ -157,10 +194,22 @@ export default function Profile() {
                   )}
                 </div>
 
-                <label className="btn btn-secondary btn-sm profile-avatar-btn">
-                  Change picture
-                  <input type="file" accept="image/*" onChange={handleAvatarChange} hidden />
-                </label>
+                <div className="profile-avatar-actions">
+                  <label className="btn btn-secondary btn-sm profile-avatar-btn">
+                    Change picture
+                    <input type="file" accept="image/*" onChange={handleAvatarChange} hidden />
+                  </label>
+                  {(currentAvatarUrl || avatarPreview) && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm profile-avatar-remove"
+                      onClick={handleRemoveAvatar}
+                      disabled={removingAvatar || submitting}
+                    >
+                      {removingAvatar ? <span className="spinner spinner-sm" /> : 'Remove picture'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="profile-meta">

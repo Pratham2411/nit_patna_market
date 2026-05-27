@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import api from '../api/axios';
 
 const AuthContext = createContext(null);
 
@@ -28,6 +29,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   }, []);
+
+  // Refresh profile from server on load (avatar, phone, etc.)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    api
+      .get('/auth/me')
+      .then(({ data }) => updateUser(data.user))
+      .catch(() => logout());
+  }, [logout, updateUser]);
 
   const isAdmin = !!user?.isAdmin || user?.role === 'admin';
 
