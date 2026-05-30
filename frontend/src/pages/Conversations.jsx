@@ -3,6 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
+import {
+  getPrimaryProductImage,
+  getProductImages,
+  resolveProductImageSrc,
+  handleProductImageError,
+} from '../utils/productImage';
 import ChatPanel from '../components/ChatPanel';
 
 const CONVERSATIONS_REFRESH_INTERVAL = 30000;
@@ -43,7 +49,8 @@ function buildDraftFromProduct(product, otherUserId, currentUserId) {
     product: {
       _id: product._id,
       title: product.title,
-      imageUrl: product.imageUrl,
+      imageUrl: getPrimaryProductImage(product),
+      imageUrls: getProductImages(product),
       price: product.price,
       status: product.status,
     },
@@ -190,7 +197,6 @@ export default function Conversations() {
             <div className="inbox-list">
               {listItems.map((conv) => {
                 const key = `${conv.product._id}-${conv.otherUser._id}`;
-                const fallback = `https://picsum.photos/seed/${encodeURIComponent(conv.product?.title || key)}/96/96`;
                 const isMe =
                   conv.lastMessage &&
                   String(conv.lastMessage.sender._id) === String(user?.id);
@@ -210,9 +216,9 @@ export default function Conversations() {
                   >
                     <img
                       className="inbox-item-img"
-                      src={mediaUrl(conv.product?.imageUrl) || fallback}
+                      src={resolveProductImageSrc(getPrimaryProductImage(conv.product))}
                       alt=""
-                      onError={(e) => { e.target.src = fallback; }}
+                      onError={handleProductImageError}
                     />
                     <div className="inbox-item-body">
                       <div className="inbox-item-top">

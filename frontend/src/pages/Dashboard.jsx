@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { mediaUrl } from '../utils/mediaUrl';
+import { getPrimaryProductImage, resolveProductImageSrc, handleProductImageError } from '../utils/productImage';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -95,15 +95,13 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="dash-grid">
-            {products.map((product) => {
-              const fallback = `https://picsum.photos/seed/${encodeURIComponent(product.title)}/600/400`;
-              return (
+            {products.map((product) => (
                 <div key={product._id} className="dash-card">
                   <img
                     className="dash-card-img"
-                    src={mediaUrl(product.imageUrl) || fallback}
+                    src={resolveProductImageSrc(getPrimaryProductImage(product))}
                     alt={product.title}
-                    onError={(e) => { e.target.src = fallback; }}
+                    onError={handleProductImageError}
                   />
                   <div className="dash-card-body">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -143,8 +141,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
 

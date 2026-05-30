@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
+import { getPrimaryProductImage, resolveProductImageSrc, handleProductImageError } from '../utils/productImage';
 import { getApiErrorMessage } from '../utils/apiError';
 import AdminAnnouncementsPanel from '../components/admin/AdminAnnouncementsPanel';
 import AdminFeedbackPanel from '../components/admin/AdminFeedbackPanel';
@@ -188,7 +189,12 @@ export default function AdminDashboard() {
           <div className="admin-data-table">
             {products.map((p) => (
               <div key={p._id} className="admin-data-row glass-card">
-                <img src={mediaUrl(p.imageUrl)} alt="" className="admin-row-img" />
+                <img
+                  src={resolveProductImageSrc(getPrimaryProductImage(p))}
+                  alt=""
+                  className="admin-row-img"
+                  onError={handleProductImageError}
+                />
                 <div className="admin-data-main">
                   <strong>{p.title}</strong>
                   <span className="admin-data-meta">₹{p.price} · {p.seller?.name}</span>

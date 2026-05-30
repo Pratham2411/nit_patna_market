@@ -1,37 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
-import { mediaUrl } from '../utils/mediaUrl';
+import ImageUploader, {
+  buildExistingImageItem,
+  buildPendingImageItem,
+  revokePendingPreviews,
+} from '../components/ImageUploader';
+import { MAX_LISTING_IMAGES, getProductImages } from '../utils/productImage';
 
 const CATEGORIES = ['Books', 'Electronics', 'Clothing', 'Furniture', 'Stationery', 'Sports', 'Other'];
 
 export default function SellItem() {
-  const { id } = useParams(); // present when editing
+  const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
 
   const [form, setForm] = useState({
     title: '', description: '', price: '', category: 'Books',
   });
-  const [imageFile, setImageFile]     = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
-  const [error, setError]   = useState('');
+  const [imageItems, setImageItems] = useState([]);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
-  const fileRef = useRef();
+  const imageItemsRef = useRef(imageItems);
 
-  // Populate form in edit mode
+  useEffect(() => {
+    imageItemsRef.current = imageItems;
+  }, [imageItems]);
+
+  useEffect(() => {
+    return () => revokePendingPreviews(imageItemsRef.current);
+  }, []);
+
   useEffect(() => {
     if (!isEdit) return;
     api.get(`/products/${id}`)
       .then(({ data }) => {
         setForm({
-          title:       data.title,
+          title: data.title,
           description: data.description,
-          price:       data.price,
-          category:    data.category,
+          price: data.price,
+          category: data.category,
         });
-        if (data.imageUrl) setImagePreview(mediaUrl(data.imageUrl));
+        const urls = getProductImages(data);
+        setImageItems(urls.map(buildExistingImageItem));
       })
       .catch(() => navigate('/dashboard'))
       .finally(() => setFetching(false));
@@ -40,18 +52,40 @@ export default function SellItem() {
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  const handleAddFiles = (files) => {
+    setError('');
+    const room = MAX_LISTING_IMAGES - imageItems.length;
+    if (room <= 0) {
+      setError(`Maximum ${MAX_LISTING_IMAGES} photos allowed`);
+      return;
+    }
+    const toAdd = files.slice(0, room).map(buildPendingImageItem);
+    if (files.length > room) {
+      setError(`Only ${room} more photo${room === 1 ? '' : 's'} can be added`);
+    }
+    setImageItems((prev) => [...prev, ...toAdd]);
+  };
+
+  const handleRemoveImage = (itemId) => {
+    setImageItems((prev) => {
+      const item = prev.find((i) => i.id === itemId);
+      if (item && !item.isExisting && item.preview?.startsWith('blob:')) {
+        URL.revokeObjectURL(item.preview);
+      }
+      return prev.filter((i) => i.id !== itemId);
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     if (!form.title || !form.description || !form.price || !form.category) {
       setError('All fields are required');
+      return;
+    }
+    if (!imageItems.length) {
+      setError('Add at least one photo of your item');
       return;
     }
     if (Number(form.price) <= 0) {
@@ -62,13 +96,20 @@ export default function SellItem() {
     setLoading(true);
     try {
       const payload = new FormData();
-      payload.append('title',       form.title);
+      payload.append('title', form.title);
       payload.append('description', form.description);
-      payload.append('price',       form.price);
-      payload.append('category',    form.category);
-      if (imageFile) payload.append('image', imageFile);
+      payload.append('price', form.price);
+      payload.append('category', form.category);
+
+      imageItems
+        .filter((item) => !item.isExisting && item.file)
+        .forEach((item) => payload.append('images', item.file));
 
       if (isEdit) {
+        const keepImages = imageItems
+          .filter((item) => item.isExisting && item.path)
+          .map((item) => item.path);
+        payload.append('keepImages', JSON.stringify(keepImages));
         await api.put(`/products/${id}`, payload);
       } else {
         await api.post('/products', payload);
@@ -88,12 +129,13 @@ export default function SellItem() {
       <div className="container" style={{ maxWidth: 720 }}>
         <h1 className="page-title">{isEdit ? 'Edit Listing' : 'List an Item'}</h1>
         <p className="page-subtitle">
-          {isEdit ? 'Update your listing details below.' : 'Fill in the details to list your item for sale.'}
+          {isEdit
+            ? 'Update details and photos. Tap × to remove any image before saving.'
+            : 'Add up to 8 photos. Tap × to remove before publishing.'}
         </p>
 
         <div className="glass-card">
           <form id="sell-form" onSubmit={handleSubmit}>
-            {/* Title */}
             <div className="form-group">
               <label className="form-label" htmlFor="sell-title">Item Title *</label>
               <input
@@ -108,7 +150,6 @@ export default function SellItem() {
             </div>
 
             <div className="form-row">
-              {/* Category */}
               <div className="form-group">
                 <label className="form-label" htmlFor="sell-category">Category *</label>
                 <select
@@ -122,7 +163,6 @@ export default function SellItem() {
                 </select>
               </div>
 
-              {/* Price */}
               <div className="form-group">
                 <label className="form-label" htmlFor="sell-price">Price (₹) *</label>
                 <input
@@ -139,7 +179,6 @@ export default function SellItem() {
               </div>
             </div>
 
-            {/* Description */}
             <div className="form-group">
               <label className="form-label" htmlFor="sell-description">Description *</label>
               <textarea
@@ -154,35 +193,14 @@ export default function SellItem() {
               />
             </div>
 
-            {/* Image upload */}
-            <div className="form-group">
-              <label className="form-label">Product Image (optional)</label>
-              <div
-                className="image-upload-area"
-                onClick={() => fileRef.current.click()}
-              >
-                <input
-                  id="sell-image"
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="image-preview" />
-                ) : (
-                  <>
-                    <div className="upload-icon">🖼️</div>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                      Click to upload an image
-                    </p>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 6 }}>
-                      JPG, PNG, WEBP · Max 5MB · A placeholder will be used if skipped
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
+            <ImageUploader
+              items={imageItems}
+              onAddFiles={handleAddFiles}
+              onRemove={handleRemoveImage}
+              disabled={loading}
+              label={`Photos * (up to ${MAX_LISTING_IMAGES})`}
+              hint="JPG, PNG, WEBP · Max 5MB each · First photo is the cover image"
+            />
 
             {error && <p className="form-error" style={{ marginBottom: 16 }}>{error}</p>}
 
@@ -195,8 +213,7 @@ export default function SellItem() {
               >
                 {loading
                   ? <><span className="spinner" /> {isEdit ? 'Saving…' : 'Publishing…'}</>
-                  : isEdit ? '💾 Save Changes' : '🚀 Publish Listing'
-                }
+                  : isEdit ? '💾 Save Changes' : '🚀 Publish Listing'}
               </button>
               <button
                 type="button"

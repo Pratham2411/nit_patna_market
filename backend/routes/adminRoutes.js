@@ -10,6 +10,7 @@ const Feedback = require('../models/Feedback');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const { formatUser } = require('../utils/formatUser');
+const { unlinkProductImages } = require('../utils/productImages');
 
 router.use(auth, admin);
 
@@ -52,8 +53,10 @@ router.get('/products', async (req, res) => {
 
 router.delete('/products/:id', async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
+    await unlinkProductImages(product);
+    await product.deleteOne();
     await Promise.all([
       Comment.deleteMany({ product: product._id }),
       Review.deleteMany({ product: product._id }),

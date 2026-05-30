@@ -8,6 +8,9 @@ const connectDB = require('./config/db');
 dotenv.config();
 connectDB();
 
+const { getStorageMode } = require('./utils/imageStorage');
+console.log(`📷 Image storage: ${getStorageMode()}`);
+
 const app = express();
 
 // Middleware — allow Vercel (with/without www), previews, and local dev

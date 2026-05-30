@@ -1,10 +1,6 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
-const multer = require('multer');
-
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { formatUser } = require('../utils/formatUser');
@@ -53,37 +49,10 @@ const signToken = (user) => {
   );
 };
 
-const unlinkIfUploadsPath = (maybePath) => {
-  if (!maybePath || !maybePath.startsWith('/uploads/')) return;
-  const filePath = path.join(__dirname, '..', maybePath);
-  try {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  } catch {
-    // ignore
-  }
-};
+const { createUpload } = require('../middleware/multerUpload');
+const { uploadFile, deleteStoredImage } = require('../utils/imageStorage');
 
-// ─── Multer (avatar uploads) ────────────────────────────────────────────────
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images are allowed'));
-    cb(null, true);
-  },
-});
+const uploadAvatar = createUpload(1, 2).single('image');
 
 // ─── POST /api/auth/register ─────────────────────────────────────────────────
 
@@ -180,7 +149,7 @@ router.get('/me', auth, async (req, res) => {
 
 // ─── PATCH /api/auth/me ───────────────────────────────────────────────────────
 
-router.patch('/me', auth, upload.single('image'), async (req, res) => {
+router.patch('/me', auth, uploadAvatar, async (req, res) => {
   try {
     const user = req.userDoc;
     if (!user) return res.status(401).json({ message: 'User not found' });
@@ -201,11 +170,11 @@ router.patch('/me', auth, upload.single('image'), async (req, res) => {
       removeAvatar === '1';
 
     if (shouldRemoveAvatar) {
-      unlinkIfUploadsPath(user.avatarUrl);
+      await deleteStoredImage(user.avatarUrl);
       user.avatarUrl = '';
     } else if (req.file) {
-      unlinkIfUploadsPath(user.avatarUrl);
-      user.avatarUrl = `/uploads/${req.file.filename}`;
+      await deleteStoredImage(user.avatarUrl);
+      user.avatarUrl = await uploadFile(req.file, 'avatars');
     }
 
     await user.save();
@@ -221,10 +190,11 @@ router.delete('/me', auth, async (req, res) => {
   try {
     const userId = req.userDoc?._id?.toString() || req.user.id;
 
-    unlinkIfUploadsPath(req.userDoc?.avatarUrl);
+    await deleteStoredImage(req.userDoc?.avatarUrl);
 
-    const products = await Product.find({ seller: userId }).select('_id imageUrl');
-    for (const p of products) unlinkIfUploadsPath(p.imageUrl);
+    const { unlinkProductImages } = require('../utils/productImages');
+    const products = await Product.find({ seller: userId });
+    await Promise.all(products.map((p) => unlinkProductImages(p)));
 
     await Promise.all([
       Product.deleteMany({ seller: userId }),

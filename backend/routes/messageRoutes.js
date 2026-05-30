@@ -24,7 +24,7 @@ router.get('/conversations', auth, async (req, res) => {
     })
       .populate('sender', 'name role avatarUrl')
       .populate('receiver', 'name role avatarUrl')
-      .populate('product', 'title imageUrl status price seller')
+      .populate('product', 'title imageUrl imageUrls status price seller')
       .sort({ createdAt: -1 });
 
     const convMap = new Map();

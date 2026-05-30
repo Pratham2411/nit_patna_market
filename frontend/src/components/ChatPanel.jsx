@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
+import { getPrimaryProductImage, resolveProductImageSrc, handleProductImageError } from '../utils/productImage';
 import { getApiErrorMessage } from '../utils/apiError';
 
 const POLL_INTERVAL = 15000;
@@ -107,9 +108,6 @@ export default function ChatPanel({
     }
   };
 
-  const productFallback = product
-    ? `https://picsum.photos/seed/${encodeURIComponent(product.title)}/48/48`
-    : '';
   const otherInitial = otherUser?.name?.charAt(0)?.toUpperCase() || '?';
 
   let lastDate = '';
@@ -120,9 +118,9 @@ export default function ChatPanel({
         {product && (
           <img
             className="chat-header-img"
-            src={mediaUrl(product.imageUrl) || productFallback}
+            src={resolveProductImageSrc(getPrimaryProductImage(product))}
             alt=""
-            onError={(e) => { e.target.src = productFallback; }}
+            onError={handleProductImageError}
           />
         )}
         <div className="chat-header-info">

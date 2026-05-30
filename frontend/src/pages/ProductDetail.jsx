@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { mediaUrl } from '../utils/mediaUrl';
+import ProductImageGallery from '../components/ProductImageGallery';
 import ProductSocial from '../components/ProductSocial';
 import AdminBadge from '../components/AdminBadge';
 
@@ -58,9 +59,6 @@ export default function ProductDetail() {
     }
   };
 
-  const fallback = product
-    ? `https://picsum.photos/seed/${encodeURIComponent(product.title)}/800/600`
-    : '';
   const sellerInitial = product?.seller?.name?.charAt(0)?.toUpperCase() || '?';
 
   if (loading) return <div className="loader-page"><div className="spinner" /></div>;
@@ -77,14 +75,7 @@ export default function ProductDetail() {
         </div>
 
         <div className="detail-grid">
-          {/* Image */}
-          <div className="detail-image-wrap">
-            <img
-              src={mediaUrl(product.imageUrl) || fallback}
-              alt={product.title}
-              onError={(e) => { e.target.src = fallback; }}
-            />
-          </div>
+          <ProductImageGallery product={product} alt={product.title} />
 
           {/* Info */}
           <div className="detail-info">

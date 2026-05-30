@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { mediaUrl } from '../utils/mediaUrl';
+import { getPrimaryProductImage, resolveProductImageSrc, handleProductImageError } from '../utils/productImage';
 
 const CATEGORY_COLORS = {
   Books:       'badge-blue',
@@ -13,17 +14,15 @@ const CATEGORY_COLORS = {
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
-
-  const fallback = `https://picsum.photos/seed/${encodeURIComponent(product.title)}/600/400`;
   const sellerInitial = product.seller?.name?.charAt(0)?.toUpperCase() || '?';
 
   return (
     <div className="product-card" onClick={() => navigate(`/product/${product._id}`)}>
       <div className="card-image-wrap">
         <img
-          src={mediaUrl(product.imageUrl) || fallback}
+          src={resolveProductImageSrc(getPrimaryProductImage(product))}
           alt={product.title}
-          onError={(e) => { e.target.src = fallback; }}
+          onError={handleProductImageError}
           loading="lazy"
         />
         <div className="card-badge">
