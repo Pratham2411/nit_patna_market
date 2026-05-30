@@ -1,6 +1,44 @@
 # 02 — Architecture & Data Flow
 
-## System Architecture
+> **Updated May 2026.** Sections below marked *legacy* may describe older structure.  
+> For interview prep see **[07-interview-guide.md](./07-interview-guide.md)**.  
+> Verify ports and routes in `backend/server.js` and `frontend/vite.config.js`.
+
+## System Architecture (current)
+
+```
+Browser (React SPA @ localhost:3000, Vercel in prod)
+        │
+        │  HTTP (Axios)  Authorization: Bearer JWT
+        │  Vite dev proxy → localhost:5000
+        ▼
+Express API (PORT 5000, Render in prod)
+        │
+        ├── /api/auth, /products, /messages, /comments, /reviews
+        ├── /api/admin, /announcements, /feedback
+        ├── /uploads  (static — only when Cloudinary NOT configured)
+        │
+        ├──► MongoDB Atlas (users, products, messages, comments, reviews,
+        │                   announcements, announcementreads, feedbacks)
+        └──► Cloudinary CDN (product + avatar images when env set)
+```
+
+### MongoDB collections (current)
+
+| Collection | Model |
+|------------|--------|
+| users | User.js |
+| products | Product.js (`imageUrls[]`, `imageUrl` cover) |
+| messages | Message.js |
+| comments | Comment.js |
+| reviews | Review.js |
+| announcements | Announcement.js |
+| announcementreads | AnnouncementRead.js |
+| feedbacks | Feedback.js |
+
+---
+
+## System Architecture *(legacy diagram — outdated ports/routes)*
 
 ```
 Browser (React SPA @ localhost:3000)

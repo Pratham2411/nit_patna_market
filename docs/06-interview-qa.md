@@ -1,7 +1,13 @@
-# 06 — Interview Q&A
+# 06 — Interview Q&A (Quick Reference)
 
-> These are real questions interviewers ask for MERN projects.
-> Read the answer, understand it, then say it in your own words.
+> **For the full interview preparation guide** (100 questions, architecture deep dive, trade-offs, problems faced, resume questions), see **[07-interview-guide.md](./07-interview-guide.md)**.
+>
+> This file is a shorter cheat sheet. Read the answer, understand it, then say it in your own words.  
+> **Note:** Some details below were updated May 2026 — prefer **07** and the codebase if anything conflicts.
+
+### ⚠️ This project does NOT use AI/LLMs
+
+No ChatGPT, RAG, embeddings, vector databases, or tool calling. If asked about AI, say it’s out of scope and describe what the app **does** use (MERN, JWT, Cloudinary, polling).
 
 ---
 
@@ -9,7 +15,7 @@
 
 **Q: Tell me about your project.**
 
-> "I built a full-stack MERN web application — a college marketplace where students can list and buy second-hand items. It has JWT-based authentication, product listings with image upload, search and filter, and a MongoDB-backed messaging system between buyers and sellers. The backend is a REST API built with Express and MongoDB, and the frontend is a React SPA using Vite with React Router and Axios."
+> "I built NIT Patna Market — a full-stack MERN campus marketplace where NIT Patna students list and buy second-hand items. It has JWT auth restricted to college emails, multi-photo listings on Cloudinary, search and filters, reviews and comments, polling-based buyer–seller chat, admin moderation, campus announcements, and user feedback. The backend is Express + MongoDB; the frontend is a React SPA with Vite."
 
 ---
 
@@ -35,7 +41,7 @@
 
 **Q: How does JWT authentication work in your project?**
 
-> "When a user registers or logs in, the server creates a JWT containing the user's ID, name, email, and college — signed with a secret key. This token is returned to the client and stored in localStorage. On every subsequent API request, the frontend attaches it in the Authorization header as 'Bearer <token>'. The server's auth middleware verifies the signature using the same secret key. If valid, it decodes the payload and attaches `req.user` so the route handler knows who's making the request — without hitting the database."
+> "When a user registers or logs in, the server creates a JWT containing the user's ID, name, email, role, and isAdmin — signed with JWT_SECRET. The token is stored in localStorage. Axios attaches `Authorization: Bearer <token>` on each request. The auth middleware verifies the signature, loads the user from MongoDB (to check ban status), and sets req.user. Protected routes reject missing or invalid tokens."
 
 ---
 
@@ -47,7 +53,7 @@
 
 **Q: How do you store passwords securely?**
 
-> "I use bcryptjs with a salt factor of 10. Bcrypt hashes the password with a random salt before storing it, so even if two users have the same password, their hashes are different. The salt is stored as part of the hash itself, so you don't need to store it separately. When logging in, I use `bcrypt.compare()` to check the plain-text password against the stored hash."
+> "Passwords are hashed in a Mongoose pre-save hook with bcrypt (cost factor 12 in User.js). Only re-hashed when the password field changes. Login uses bcrypt.compare() against the stored hash."
 
 ---
 
@@ -59,7 +65,7 @@
 
 **Q: What is CORS and why do you need it?**
 
-> "CORS — Cross-Origin Resource Sharing. Browsers block requests to a different origin by default. Our frontend runs on port 3000 and backend on port 5001 — these are different origins. The `cors()` Express middleware adds `Access-Control-Allow-Origin` headers to responses, telling the browser these cross-origin requests are allowed."
+> "CORS blocks cross-origin requests by default. Our frontend (port 3000) and backend (port 5000) are different origins in dev. Express cors() allowlists Vercel URLs and localhost. Vite proxies /api in development so the browser often sees same-origin requests."
 
 ---
 
@@ -93,13 +99,13 @@
 
 **Q: How does file upload work in your project?**
 
-> "I use Multer, an Express middleware for handling multipart/form-data — the encoding format used for file uploads. On the frontend, I create a FormData object, append the file and form fields, and send it as a POST request. Multer parses this on the server, validates the MIME type to ensure it's an image, and saves it to the /uploads directory with a timestamp-based filename. The server then stores the path in the Product document and serves the uploads folder as static files."
+> "Multer parses multipart/form-data into memory buffers. We validate image MIME types and size (5MB). Files upload to Cloudinary when CLOUDINARY_* env vars are set (secure HTTPS URLs in MongoDB); otherwise local /uploads for dev. Listings support up to 8 images via imageUrls array. Axios must not set Content-Type manually on FormData — the browser adds the boundary."
 
 ---
 
 **Q: What are the limitations of local file storage?**
 
-> "Files are stored on the same server, so if you have multiple server instances, only one has the file. If the server restarts or the disk is wiped, files are lost. For production, you'd use cloud storage like Cloudinary, AWS S3, or Google Cloud Storage. That's an easy upgrade — just change the Multer destination to upload to the cloud instead of disk."
+> "We integrated Cloudinary (see docs/CLOUDINARY_SETUP.md). Without it, files go to local disk — which is wiped on Render redeploy. Production must set CLOUDINARY_CLOUD_NAME, API_KEY, and API_SECRET on the backend. Old /uploads paths break after redeploy unless re-uploaded."
 
 ---
 
@@ -139,7 +145,7 @@
 
 **Q: Why did you choose polling over WebSockets?**
 
-> "For this use case, polling every 3 seconds is completely sufficient. A college marketplace chat doesn't need sub-second latency — students won't notice a 1–3 second delay. WebSockets would add significant complexity: Socket.io setup, CORS configuration for WebSocket connections, and the server becomes stateful, making horizontal scaling harder. Polling is simple, stateless, and easy to explain and maintain."
+> "ChatPanel polls every 15 seconds; the navbar unread badge polls every 10 seconds. For campus marketplace chat that's acceptable. WebSockets would be faster but add stateful connections and deployment complexity. MongoDB remains the source of truth either way."
 
 ---
 
@@ -193,7 +199,11 @@
 
 | Question | Answer |
 |---------|--------|
-| What port does the backend run on? | 5001 (changed from 5000 — macOS uses 5000 for AirPlay) |
+| What port does the backend run on? | **5000** default (`PORT` in `.env`); Vite proxy targets 5000 |
+| Max photos per listing? | **8** |
+| Image storage in production? | **Cloudinary** (if env configured) |
+| Does this use AI/LLMs? | **No** |
+| Signup email rule? | **@nitp.ac.in** (+ admin allowlist) |
 | Where is the JWT secret stored? | `.env` file, accessed via `process.env.JWT_SECRET` |
 | How long do tokens last? | 7 days |
 | What HTTP method is used to mark as sold? | PATCH (partial update, not full replacement) |

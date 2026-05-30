@@ -11,7 +11,7 @@ WebSockets maintain a persistent, two-way connection between client and server. 
 |--|-----------|-------------|
 | Setup complexity | High (socket.io, CORS config, event system) | Zero — just `setInterval` |
 | Server requirement | Stateful (can't easily scale horizontally) | Stateless REST — works with any server |
-| Latency | Instant (real-time) | Up to 3 seconds |
+| Latency | Instant (real-time) | Up to ~15 seconds (`ChatPanel.jsx`) |
 | For this use case | Overkill | Sufficient |
 | Explain in interview | Harder | Simple and honest |
 
@@ -25,8 +25,8 @@ WebSockets maintain a persistent, two-way connection between client and server. 
 
 1. Buyer views a product listing (`ProductDetail.jsx`)
 2. Clicks **"💬 Chat with Seller"**
-3. App navigates to `/chat/:productId/:sellerId`
-4. `Chat.jsx` mounts with `productId` and `otherUserId` from URL params
+3. App navigates to `/messages?product=<id>&user=<sellerId>` (draft chat if no messages yet)
+4. `Conversations.jsx` + `ChatPanel.jsx` load the thread; `/chat/:productId/:otherUserId` also exists
 
 ### Fetching Messages
 

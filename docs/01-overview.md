@@ -1,86 +1,135 @@
 # 01 — Project Overview
 
-## What is Campus Market?
+## What is NIT Patna Market?
 
-Campus Market is a **peer-to-peer marketplace** for college students to buy and sell second-hand items — textbooks, electronics, clothing, furniture — within their own campus community.
+**NIT Patna Market** (Campus Market) is a **peer-to-peer marketplace** for **NIT Patna students** to buy and sell second-hand items — textbooks, electronics, clothing, furniture, and more — within a campus-trusted environment.
 
-Think of it as a **college-scoped OLX/Facebook Marketplace** with a built-in chat system.
-
----
-
-## Why this project?
-
-This project was built to demonstrate practical full-stack web development skills:
-- Building a **RESTful API** from scratch with Express + MongoDB
-- Handling **authentication** securely with JWT
-- Managing **file uploads** with Multer
-- Designing a **React SPA** with routing, protected pages, and global state
-- Implementing a **messaging system** without WebSockets (MongoDB polling)
+Think of it as a **college-scoped OLX** with in-app messaging, reviews, comments, admin moderation, and campus announcements.
 
 ---
 
-## Feature List
+## Problem statement
 
-### Core Features
+| Problem | How this app addresses it |
+|---------|---------------------------|
+| Scattered WhatsApp/Facebook sale posts | Centralized searchable listings |
+| No trust or moderation | Admin dashboard (spam, bans, feedback) |
+| Hard to coordinate buyer–seller | Per-listing chat threads in MongoDB |
+| Lost context on items | Multi-photo listings, categories, sold status |
+
+---
+
+## Who can use it?
+
+From `backend/routes/authRoutes.js`:
+
+- **Students:** must register with an **`@nitp.ac.in`** email (strong password rules).
+- **Admins:** emails listed in `backend/config/admins.js` (also promoted to `role: 'admin'` on save).
+
+**Not in this project:** open registration for any email domain (root `README.md` may be outdated).
+
+---
+
+## Feature list (current implementation)
+
+### Core marketplace
+
 | Feature | Description |
 |---------|-------------|
-| 🔐 User Auth | Register + Login with JWT. Passwords hashed with bcryptjs |
-| 📦 List Items | Create listings with title, price, category, description, optional image |
-| 🔍 Search & Filter | Real-time debounced search, category filter, min/max price filter |
-| 🖼️ Image Upload | Upload product images via Multer (stored locally). Falls back to picsum.photos placeholder |
-| ✏️ Edit Listing | Sellers can edit their own listings |
-| 🔴 Mark as Sold | Toggle listing status between `available` and `sold` |
-| 🗑️ Delete Listing | Sellers can delete their listings (image file also cleaned up) |
-| 💬 Chat System | MongoDB-backed messaging between buyer and seller, per product |
-| 📥 Conversations Inbox | View all conversations with unread counts |
-| 🔔 Unread Badge | Navbar polls unread count every 10 seconds |
-| 📊 Dashboard | Sellers see all their listings with stats (Total / Active / Sold) |
+| 🔐 Auth | Register, login, JWT (7 days), bcrypt passwords |
+| 📦 Listings | Create / edit / delete; up to **8 photos** per item |
+| 🔍 Browse | Debounced search, category + min/max price filters |
+| 📸 Images | **Cloudinary** (production) or local `uploads/` (dev fallback) |
+| 🔴 Sold status | Toggle `available` / `sold` |
+| 💬 Chat | Buyer–seller messages per product; inbox at `/messages` |
+| ⭐ Reviews | 1–5 stars, one review per user per product |
+| 💬 Comments | Public comments on product pages |
 
-### UX Features
-- Dark glassmorphism design with purple accent
-- Responsive layout (mobile-friendly)
-- Loading spinners, empty states, toast notifications
-- Debounced search (350ms) to avoid hammering the API
-- Chat auto-scrolls to latest message
-- Enter to send a message, Shift+Enter for new line
+### User account
+
+| Feature | Description |
+|---------|-------------|
+| 👤 Profile | Phone, avatar upload/remove, delete account |
+| 🔔 Announcements | Navbar bell; read/unread; admin-published notices |
+| 📩 Feedback | Homepage section → admin feedback inbox |
+
+### Admin
+
+| Feature | Description |
+|---------|-------------|
+| 📊 Dashboard | Stats, users, products |
+| 🚫 Moderation | Mark spam, ban users, delete content |
+| 📢 Announcements | CRUD with priority, expiry |
+| 📩 Feedback | Filter by status; resolve / delete |
+
+### UX
+
+- Dark glassmorphism UI (plain CSS design system)
+- Responsive layout
+- Product image gallery on detail page
+- Multi-image picker with × remove before upload (`ImageUploader.jsx`)
+- Toast notifications, loading states, empty states
 
 ---
 
-## Tech Stack
+## Tech stack
 
 ### Backend
-| Technology | Why we chose it |
-|-----------|-----------------|
-| **Node.js** | JavaScript on the server — same language as frontend |
-| **Express.js** | Minimal, flexible HTTP framework. Industry standard for Node APIs |
-| **MongoDB** | Document-based NoSQL DB — great for flexible product schemas |
-| **Mongoose** | ODM for MongoDB — provides schema validation, hooks, populate |
-| **JWT** | Stateless authentication — no session storage needed on server |
-| **bcryptjs** | Password hashing — never store plain-text passwords |
-| **Multer** | Middleware for handling `multipart/form-data` file uploads |
-| **dotenv** | Load environment variables from `.env` file |
-| **cors** | Allow the React frontend (port 3000) to call the API (port 5001) |
-| **nodemon** | Auto-restarts server on file changes during development |
+
+| Technology | Role in this project |
+|------------|---------------------|
+| **Node.js + Express** | REST API |
+| **MongoDB + Mongoose** | Data store (8 collections — see [02-architecture](./02-architecture.md)) |
+| **JWT + bcrypt** | Stateless auth |
+| **Multer** | Memory buffers for multipart uploads |
+| **Cloudinary** | Permanent image CDN when env vars set |
+| **dotenv** | Configuration |
+| **cors** | Vercel + localhost origins |
 
 ### Frontend
-| Technology | Why we chose it |
-|-----------|-----------------|
-| **React 18** | Component-based UI, reusable, declarative — industry standard |
-| **Vite** | Blazing fast dev server + bundler (faster than Create React App) |
-| **React Router v6** | Client-side routing — makes it a Single Page Application (SPA) |
-| **Axios** | HTTP client with interceptors — easier than raw `fetch` for auth headers |
-| **Context API** | Global auth state without Redux (project is small enough) |
-| **Plain CSS** | Full control, no framework overhead, custom design system |
+
+| Technology | Role in this project |
+|------------|---------------------|
+| **React 18** | UI components |
+| **Vite 8** | Dev server (port 3000), proxy to API |
+| **React Router 6** | SPA routing, protected + admin routes |
+| **Axios** | API + JWT interceptor |
+| **Context API** | Global auth only |
+
+### Deployment (from code & docs)
+
+| Service | Typical use |
+|---------|-------------|
+| **Vercel** | Frontend (`vercel.json` SPA rewrites) |
+| **Render** | Backend API |
+| **MongoDB Atlas** | Database |
+| **Cloudinary** | Images |
 
 ---
 
-## What we intentionally left out (and why)
+## What is intentionally NOT in this project
 
-| Feature | Why excluded |
-|---------|-------------|
-| Real-time WebSocket chat | Overkill for this scale; MongoDB polling every 3s is sufficient |
-| Payment integration | Adds regulatory complexity (Razorpay/Stripe); out of scope |
-| Email verification | Needs SMTP/SendGrid setup; adds infra complexity |
-| Redux | Overkill for a project with only auth as global state |
-| TypeScript | Adds compile step complexity; plain JS is faster to build and explain |
-| Cloudinary | Local storage is simpler for demo; Cloudinary is an easy upgrade |
+| Feature | Notes |
+|---------|--------|
+| **LLM / AI / RAG** | No OpenAI, embeddings, or vector DB |
+| **WebSockets** | Chat uses HTTP **polling** (10–15s) |
+| **Payments** | No Razorpay/Stripe |
+| **Email OTP (active)** | SMTP in `.env.example`; register sets verified without OTP flow |
+| **Redux / TypeScript** | Not used |
+| **Automated tests** | Not present in repo |
+
+See [07-interview-guide.md](./07-interview-guide.md) for interview talking points.
+
+---
+
+## Documentation map
+
+| Doc | Purpose |
+|-----|---------|
+| [02-architecture](./02-architecture.md) | Diagrams, flows, collections |
+| [03-backend](./03-backend.md) | API & models (partial — cross-check with code) |
+| [04-frontend](./04-frontend.md) | React structure |
+| [05-chat-system](./05-chat-system.md) | Messaging design |
+| [06-interview-qa](./06-interview-qa.md) | Short Q&A cheat sheet |
+| **[07-interview-guide](./07-interview-guide.md)** | **Full interview preparation** |
+| [CLOUDINARY_SETUP](./CLOUDINARY_SETUP.md) | Image hosting setup |
