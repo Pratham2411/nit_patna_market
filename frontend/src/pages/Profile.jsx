@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { mediaUrl } from '../utils/mediaUrl';
 
-import '../profile.css';
+import '../styles/profile.css';
 
 export default function Profile() {
   const { user: authUser, logout, updateUser } = useAuth();

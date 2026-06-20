@@ -7,4 +7,4 @@ const ADMIN_EMAILS = [
 const isAdminEmail = (email) =>
   ADMIN_EMAILS.includes(String(email || '').toLowerCase().trim());
 
-module.exports = { ADMIN_EMAILS, isAdminEmail };
+module.exports = { isAdminEmail };

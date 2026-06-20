@@ -27,4 +27,3 @@ productSchema.pre('save', function syncPrimaryImage(next) {
 });
 
 module.exports = mongoose.model('Product', productSchema);
-module.exports.CATEGORIES = CATEGORIES;

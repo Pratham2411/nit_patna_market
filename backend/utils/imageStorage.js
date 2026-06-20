@@ -100,7 +100,5 @@ module.exports = {
   uploadFiles,
   deleteStoredImage,
   isValidStoredImageUrl,
-  isCloudinaryUrl,
-  isLocalUploadUrl,
   getStorageMode,
 };

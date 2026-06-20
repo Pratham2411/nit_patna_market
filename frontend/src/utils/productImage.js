@@ -3,7 +3,7 @@ import { mediaUrl } from './mediaUrl';
 export const MAX_LISTING_IMAGES = 8;
 
 /** Neutral placeholder — never use random stock photos when an upload fails. */
-export const LISTING_IMAGE_PLACEHOLDER =
+const LISTING_IMAGE_PLACEHOLDER =
   'data:image/svg+xml,' +
   encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
@@ -30,13 +30,8 @@ export function getPrimaryProductImage(product) {
   return getProductImages(product)[0] || '';
 }
 
-export function isLegacyRandomPlaceholder(imageUrl) {
+function isLegacyRandomPlaceholder(imageUrl) {
   return typeof imageUrl === 'string' && imageUrl.includes('picsum.photos');
-}
-
-export function isHostedProductImage(imageUrl) {
-  if (!imageUrl || isLegacyRandomPlaceholder(imageUrl)) return false;
-  return imageUrl.startsWith('/uploads/') || imageUrl.includes('res.cloudinary.com');
 }
 
 export function resolveProductImageSrc(imageUrl) {

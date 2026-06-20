@@ -28,7 +28,7 @@ const formatProductImages = (product) => {
   };
 };
 
-const unlinkProductImage = (imageUrl) => deleteStoredImage(imageUrl);
+
 
 const unlinkProductImages = (product) =>
   Promise.all(getProductImageList(product).map(deleteStoredImage));
@@ -51,7 +51,6 @@ module.exports = {
   MAX_PRODUCT_IMAGES,
   getProductImageList,
   formatProductImages,
-  unlinkProductImage,
   unlinkProductImages,
   parseKeepImages,
   saveUploadedFiles,

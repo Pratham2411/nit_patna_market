@@ -16,4 +16,4 @@ const createUpload = (maxFiles, maxSizeMb = 5) =>
     fileFilter: imageFilter,
   });
 
-module.exports = { createUpload, imageFilter };
+module.exports = { createUpload };
