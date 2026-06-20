@@ -4,7 +4,7 @@ A full-stack **MERN** campus marketplace where **NIT Patna students** (`@nitp.ac
 
 ## Tech stack
 
-- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT, bcrypt, Multer, **Cloudinary**
+- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT, bcrypt, Multer, **Cloudinary**, **Resend** (Email OTP)
 - **Frontend:** React 18, Vite, React Router v6, Axios, plain CSS
 
 ## Project structure
@@ -35,6 +35,13 @@ npm run dev            # http://localhost:5000
 
 Look for: `📷 Image storage: cloudinary`
 
+### Testing OTP Verification Locally
+To test the OTP signup flow without needing a real Resend API key:
+1. Leave `RESEND_API_KEY=re_your_api_key_here` in your backend `.env` file.
+2. Run the backend and frontend in `development` mode (`npm run dev`).
+3. When you submit the signup form, the app will **bypass the actual email** and print the 6-digit OTP directly to your **backend terminal**.
+4. Enter that code into the frontend to complete the signup.
+
 ### Frontend
 
 ```bash
@@ -45,6 +52,7 @@ npm run dev            # http://localhost:3000
 
 ## Features
 
+- **Email OTP Verification** (Secure signup using Resend)
 - JWT authentication (college email + admin allowlist)
 - Multi-photo listings (up to 8) with Cloudinary CDN
 - Search, category, and price filters
@@ -66,7 +74,7 @@ npm run dev            # http://localhost:3000
 ## Deployment
 
 - **Frontend:** Vercel — set `VITE_API_URL` to your Render backend URL
-- **Backend:** Render — `MONGO_URI`, `JWT_SECRET`, `CLOUDINARY_*`, `FRONTEND_URL`
+- **Backend:** Render — `MONGO_URI`, `JWT_SECRET`, `CLOUDINARY_*`, `RESEND_*`, `FRONTEND_URL`
 - **Images:** Cloudinary (required for persistent photos on Render)
 
 ## Environment variables
@@ -83,6 +91,10 @@ CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
 FRONTEND_URL=http://localhost:3000
+
+# Email OTP (Resend)
+RESEND_API_KEY=re_your_api_key_here
+RESEND_FROM_EMAIL=onboarding@resend.dev
 ```
 
 ## API overview
