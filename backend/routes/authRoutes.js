@@ -6,6 +6,10 @@ const auth = require('../middleware/auth');
 const { formatUser } = require('../utils/formatUser');
 const { isAdminEmail } = require('../config/admins');
 
+const crypto = require('crypto');
+const PendingUser = require('../models/PendingUser');
+const { sendOtpEmail } = require('../utils/resendEmail');
+
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
 const Review = require('../models/Review');
@@ -53,6 +57,175 @@ const { createUpload } = require('../middleware/multerUpload');
 const { uploadFile, deleteStoredImage } = require('../utils/imageStorage');
 
 const uploadAvatar = createUpload(1, 2).single('image');
+
+// ─── OTP SIGNUP FLOW ─────────────────────────────────────────────────────────
+
+router.post('/register/send-otp', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+
+    const passwordCheck = isStrongPassword(password);
+    if (!passwordCheck.ok) {
+      return res.status(400).json({ message: passwordCheck.message });
+    }
+
+    const emailLower = email.toLowerCase().trim();
+
+    if (!isAllowedSignupEmail(emailLower)) {
+      return res.status(400).json({ message: `Use your ${NITP_DOMAIN} email to sign up` });
+    }
+
+    const existingUser = await User.findOne({ email: emailLower });
+    if (existingUser) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
+    }
+
+    let pendingUser = await PendingUser.findOne({ email: emailLower });
+    if (pendingUser) {
+      const timeSinceLastSent = (Date.now() - pendingUser.lastSentAt.getTime()) / 1000;
+      if (timeSinceLastSent < 60) {
+        return res.status(429).json({ message: `Please wait ${Math.ceil(60 - timeSinceLastSent)} seconds before resending` });
+      }
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    if (pendingUser) {
+      pendingUser.name = String(name).trim();
+      pendingUser.password = hashedPassword;
+      pendingUser.otpHash = otpHash;
+      pendingUser.otpExpires = otpExpires;
+      pendingUser.attempts = 0;
+      pendingUser.lastSentAt = new Date();
+      await pendingUser.save();
+    } else {
+      pendingUser = await PendingUser.create({
+        email: emailLower,
+        name: String(name).trim(),
+        password: hashedPassword,
+        otpHash,
+        otpExpires,
+        lastSentAt: new Date()
+      });
+    }
+
+    const emailResult = await sendOtpEmail(emailLower, otp, pendingUser.name);
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send OTP email. Please try again later.' });
+    }
+
+    res.status(200).json({ message: 'OTP sent to your email', email: emailLower });
+  } catch (err) {
+    console.error('Send OTP error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/register/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ message: 'Email and OTP are required' });
+
+    const emailLower = email.toLowerCase().trim();
+    const pendingUser = await PendingUser.findOne({ email: emailLower });
+
+    if (!pendingUser) {
+      return res.status(404).json({ message: 'Signup session expired or not found. Please register again.' });
+    }
+
+    if (pendingUser.attempts >= 5) {
+      await PendingUser.deleteOne({ _id: pendingUser._id });
+      return res.status(400).json({ message: 'Too many failed attempts. Please register again.' });
+    }
+
+    if (new Date() > pendingUser.otpExpires) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+
+    const otpHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
+    if (pendingUser.otpHash !== otpHash) {
+      pendingUser.attempts += 1;
+      await pendingUser.save();
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    const existingUser = await User.findOne({ email: emailLower });
+    if (existingUser) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
+    }
+
+    const role = isAdminEmail(emailLower) ? 'admin' : 'user';
+    const insertResult = await User.collection.insertOne({
+      name: pendingUser.name,
+      email: pendingUser.email,
+      password: pendingUser.password,
+      role: role,
+      isEmailVerified: true,
+      isBanned: false,
+      emailVerificationTokenHash: '',
+      emailVerificationExpires: null,
+      phone: '',
+      avatarUrl: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    const user = await User.findById(insertResult.insertedId);
+    await PendingUser.deleteOne({ _id: pendingUser._id });
+
+    return res.status(201).json({ token: signToken(user), user: formatUser(user) });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/register/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const emailLower = email.toLowerCase().trim();
+    const pendingUser = await PendingUser.findOne({ email: emailLower });
+
+    if (!pendingUser) {
+      return res.status(404).json({ message: 'Signup session expired. Please register again.' });
+    }
+
+    const timeSinceLastSent = (Date.now() - pendingUser.lastSentAt.getTime()) / 1000;
+    if (timeSinceLastSent < 60) {
+      return res.status(429).json({ message: `Please wait ${Math.ceil(60 - timeSinceLastSent)} seconds before resending` });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    
+    pendingUser.otpHash = otpHash;
+    pendingUser.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    pendingUser.lastSentAt = new Date();
+    await pendingUser.save();
+
+    const emailResult = await sendOtpEmail(emailLower, otp, pendingUser.name);
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send OTP email. Please try again later.' });
+    }
+
+    res.status(200).json({ message: 'New OTP sent to your email' });
+  } catch (err) {
+    console.error('Resend OTP error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // ─── POST /api/auth/register ─────────────────────────────────────────────────
 
