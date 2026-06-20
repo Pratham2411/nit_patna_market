@@ -67,6 +67,7 @@ export default function Register() {
       setStep('otp');
       setResendCooldown(60);
       setError('');
+      setForm((prev) => ({ ...prev, password: '' })); // Clear password state for security
     } catch (err) {
       setError(getApiErrorMessage(err, 'Registration failed. Try again.'));
     } finally {

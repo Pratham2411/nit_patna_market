@@ -24,6 +24,9 @@ const sendOtpEmail = async (toEmail, otp, name) => {
   }
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  
+  // Basic HTML escaping to prevent XSS
+  const safeName = String(name).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 
   try {
     const { data, error } = await resend.emails.send({
@@ -33,7 +36,7 @@ const sendOtpEmail = async (toEmail, otp, name) => {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
           <h2 style="color: #7c3aed; text-align: center;">Campus Market Verification</h2>
-          <p>Hi ${name},</p>
+          <p>Hi ${safeName},</p>
           <p>Thank you for signing up for Campus Market! Please use the verification code below to complete your registration:</p>
           
           <div style="background-color: #f4f4f5; padding: 20px; text-align: center; border-radius: 8px; margin: 24px 0;">

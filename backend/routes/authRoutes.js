@@ -95,7 +95,7 @@ router.post('/register/send-otp', async (req, res) => {
       }
     }
 
-    const otp = crypto.randomInt(100000, 999999).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
     const hashedPassword = await bcrypt.hash(password, 12);
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
@@ -165,20 +165,28 @@ router.post('/register/verify-otp', async (req, res) => {
     }
 
     const role = isAdminEmail(emailLower) ? 'admin' : 'user';
-    const insertResult = await User.collection.insertOne({
-      name: pendingUser.name,
-      email: pendingUser.email,
-      password: pendingUser.password,
-      role: role,
-      isEmailVerified: true,
-      isBanned: false,
-      emailVerificationTokenHash: '',
-      emailVerificationExpires: null,
-      phone: '',
-      avatarUrl: '',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
+    let insertResult;
+    try {
+      insertResult = await User.collection.insertOne({
+        name: pendingUser.name,
+        email: pendingUser.email,
+        password: pendingUser.password,
+        role: role,
+        isEmailVerified: true,
+        isBanned: false,
+        emailVerificationTokenHash: '',
+        emailVerificationExpires: null,
+        phone: '',
+        avatarUrl: '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    } catch (dbErr) {
+      if (dbErr.code === 11000) {
+        return res.status(400).json({ message: 'An account with this email already exists' });
+      }
+      throw dbErr;
+    }
 
     const user = await User.findById(insertResult.insertedId);
     await PendingUser.deleteOne({ _id: pendingUser._id });
@@ -207,11 +215,12 @@ router.post('/register/resend-otp', async (req, res) => {
       return res.status(429).json({ message: `Please wait ${Math.ceil(60 - timeSinceLastSent)} seconds before resending` });
     }
 
-    const otp = crypto.randomInt(100000, 999999).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
     
     pendingUser.otpHash = otpHash;
     pendingUser.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    pendingUser.attempts = 0;
     pendingUser.lastSentAt = new Date();
     await pendingUser.save();
 
