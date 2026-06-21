@@ -10,7 +10,7 @@ import AdminBadge from '../components/AdminBadge';
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser, isAuthenticated } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,6 +69,32 @@ export default function ProductDetail() {
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const inWishlist = user?.wishlist?.includes(product?._id);
+
+  const toggleWishlist = async (e) => {
+    if (e) e.stopPropagation();
+    if (!isAuthenticated) return navigate('/login');
+    try {
+      const isAdding = !inWishlist;
+      const newWishlist = isAdding 
+        ? [...(user.wishlist || []), product._id]
+        : (user.wishlist || []).filter(id => id !== product._id);
+      
+      updateUser({ ...user, wishlist: newWishlist });
+
+      if (isAdding) {
+        await api.post(`/auth/wishlist/${product._id}`);
+        showToast("Added to wishlist");
+      } else {
+        await api.delete(`/auth/wishlist/${product._id}`);
+        showToast("Removed from wishlist");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to update wishlist", "error");
+    }
+  };
+
   const sellerInitial = product?.seller?.name?.charAt(0)?.toUpperCase() || '?';
 
   if (loading) return <div className="loader-page"><div className="spinner" /></div>;
@@ -96,8 +122,27 @@ export default function ProductDetail() {
               <span className="badge badge-gray">{product.category}</span>
             </div>
 
-            <h1 className="detail-title">{product.title}</h1>
-            <div className="detail-price">₹{Number(product.price).toLocaleString('en-IN')}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h1 className="detail-title" style={{ marginBottom: 4 }}>{product.title}</h1>
+                <div className="detail-price">₹{Number(product.price).toLocaleString('en-IN')}</div>
+              </div>
+              {user && !isSeller && (
+                <button
+                  onClick={toggleWishlist}
+                  title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                  style={{
+                    background: 'var(--bg-glass)', border: '1px solid var(--border-color)', 
+                    fontSize: '1.5rem', cursor: 'pointer', borderRadius: '50%',
+                    width: '48px', height: '48px', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  {inWishlist ? '❤️' : '🤍'}
+                </button>
+              )}
+            </div>
 
             <p className="detail-description">{product.description}</p>
 
