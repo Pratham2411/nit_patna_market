@@ -1661,6 +1661,17 @@ button { cursor: pointer; font-family: var(--font); }
   background: var(--accent-glow);
 }
 .inbox-item-img { width: 56px; height: 56px; border-radius: var(--radius-md); object-fit: cover; flex-shrink: 0; }
+.inbox-item-request-icon,
+.chat-header-request-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 1.2rem;
+}
 .inbox-item-body { flex: 1; min-width: 0; }
 .inbox-item-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .inbox-item-title { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -1,17 +1,40 @@
 const router = require('express').Router();
 const ItemRequest = require('../models/ItemRequest');
+const Message = require('../models/Message');
+const RequestContact = require('../models/RequestContact');
 const auth = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
+const { sendRequestOfferEmail } = require('../utils/resendEmail');
+
+const REQUEST_CATEGORIES = ['Books', 'Electronics', 'Clothing', 'Furniture', 'Stationery', 'Sports', 'Other'];
+const REQUEST_STATUSES = ['open', 'fulfilled'];
+const REQUESTER_PUBLIC_FIELDS = 'name avatarUrl isVerifiedStudent phone';
+const REQUESTER_CONTACT_FIELDS = `${REQUESTER_PUBLIC_FIELDS} email`;
+const REQUEST_MESSAGE_TEXT = (requestTitle) => `Hi, I have "${requestTitle}". Let's discuss it here.`;
+const getFrontendUrl = () => (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+const getConversationUrl = (requestId, requesterId) => `/messages?request=${requestId}&user=${requesterId}`;
+const getConversationFullUrl = (requestId, requesterId) => `${getFrontendUrl()}${getConversationUrl(requestId, requesterId)}`;
 
 // GET all item requests
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { status, category } = req.query;
     const query = {};
-    if (status) query.status = status;
-    if (category) query.category = category;
+    if (status) {
+      if (!REQUEST_STATUSES.includes(status)) {
+        return res.status(400).json({ message: 'Invalid request status' });
+      }
+      query.status = status;
+    }
+    if (category) {
+      if (!REQUEST_CATEGORIES.includes(category)) {
+        return res.status(400).json({ message: 'Invalid request category' });
+      }
+      query.category = category;
+    }
 
     const requests = await ItemRequest.find(query)
-      .populate('requester', 'name avatarUrl isVerifiedStudent phone')
+      .populate('requester', req.user ? REQUESTER_CONTACT_FIELDS : REQUESTER_PUBLIC_FIELDS)
       .sort({ createdAt: -1 });
     res.json(requests);
   } catch (err) {
@@ -22,18 +45,99 @@ router.get('/', async (req, res) => {
 // POST new item request
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, description, category } = req.body;
+    const title = String(req.body.title || '').trim();
+    const description = String(req.body.description || '').trim();
+    const category = req.body.category || 'Other';
+
     if (!title || !description) return res.status(400).json({ message: 'Title and description are required' });
+    if (!REQUEST_CATEGORIES.includes(category)) {
+      return res.status(400).json({ message: 'Invalid request category' });
+    }
 
     const request = await ItemRequest.create({
       title,
       description,
-      category: category || 'Other',
+      category,
       requester: req.user.id
     });
 
-    await request.populate('requester', 'name avatarUrl isVerifiedStudent phone');
+    await request.populate('requester', REQUESTER_CONTACT_FIELDS);
     res.status(201).json(request);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const request = await ItemRequest.findById(req.params.id)
+      .populate('requester', req.user ? REQUESTER_CONTACT_FIELDS : REQUESTER_PUBLIC_FIELDS);
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    res.json(request);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/:id/contact', auth, async (req, res) => {
+  try {
+    const providerId = String(req.user.id);
+    const request = await ItemRequest.findById(req.params.id).populate('requester', REQUESTER_CONTACT_FIELDS);
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (request.status !== 'open') return res.status(400).json({ message: 'This request is already fulfilled' });
+
+    const requesterId = String(request.requester?._id || request.requester);
+    if (providerId === requesterId) {
+      return res.status(400).json({ message: 'You cannot contact yourself for your own request' });
+    }
+
+    const conversationUrl = getConversationUrl(request._id, requesterId);
+    const existingContact = await RequestContact.findOne({ itemRequest: request._id, provider: providerId });
+    if (existingContact) {
+      return res.json({ alreadyContacted: true, conversationUrl, requesterId });
+    }
+
+    let contact;
+    try {
+      contact = await RequestContact.create({
+        itemRequest: request._id,
+        provider: providerId,
+        requester: requesterId,
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        return res.json({ alreadyContacted: true, conversationUrl, requesterId });
+      }
+      throw err;
+    }
+
+    let message;
+    try {
+      message = await Message.create({
+        itemRequest: request._id,
+        sender: providerId,
+        receiver: requesterId,
+        text: REQUEST_MESSAGE_TEXT(request.title),
+      });
+    } catch (err) {
+      await RequestContact.deleteOne({ _id: contact._id });
+      throw err;
+    }
+
+    contact.initialMessage = message._id;
+    contact.notifiedAt = new Date();
+    await contact.save();
+
+    sendRequestOfferEmail(
+      request.requester.email,
+      request.requester.name,
+      req.user.name || 'A user',
+      request.title,
+      getConversationFullUrl(request._id, providerId)
+    ).catch(err => console.error('Failed to send request offer email:', err));
+
+    await message.populate('sender', 'name role avatarUrl');
+    res.status(201).json({ alreadyContacted: false, conversationUrl, requesterId, message });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -49,7 +153,11 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this request' });
     }
 
-    await request.deleteOne();
+    await Promise.all([
+      Message.deleteMany({ itemRequest: request._id }),
+      RequestContact.deleteMany({ itemRequest: request._id }),
+      request.deleteOne(),
+    ]);
     res.json({ message: 'Request deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -59,6 +167,10 @@ router.delete('/:id', auth, async (req, res) => {
 // PATCH item request status
 router.patch('/:id/status', auth, async (req, res) => {
   try {
+    if (!REQUEST_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({ message: 'Invalid request status' });
+    }
+
     const request = await ItemRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
 

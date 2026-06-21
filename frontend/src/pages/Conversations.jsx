@@ -27,7 +27,6 @@ const formatTime = (ts) => {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
-/** Build a draft conversation when opening chat from a listing (no messages yet). */
 function buildDraftFromProduct(product, otherUserId, currentUserId) {
   const sellerId = String(product.seller?._id || product.seller);
   const oid = String(otherUserId);
@@ -46,6 +45,7 @@ function buildDraftFromProduct(product, otherUserId, currentUserId) {
   }
 
   return {
+    contextType: 'product',
     product: {
       _id: product._id,
       title: product.title,
@@ -57,9 +57,49 @@ function buildDraftFromProduct(product, otherUserId, currentUserId) {
     otherUser,
     lastMessage: null,
     unread: 0,
+    myRole: String(currentUserId) === sellerId ? 'seller' : 'buyer',
+    otherRole: oid === sellerId ? 'seller' : 'buyer',
     isDraft: true,
   };
 }
+
+function buildDraftFromRequest(itemRequest, otherUserId, currentUserId) {
+  const requesterId = String(itemRequest.requester?._id || itemRequest.requester);
+  const oid = String(otherUserId);
+
+  let otherUser;
+  if (oid === requesterId) {
+    otherUser = {
+      _id: requesterId,
+      name: itemRequest.requester?.name || 'Requester',
+      avatarUrl: itemRequest.requester?.avatarUrl || '',
+    };
+  } else if (String(currentUserId) === requesterId) {
+    otherUser = { _id: oid, name: 'Provider' };
+  } else {
+    return null;
+  }
+
+  return {
+    contextType: 'request',
+    itemRequest: {
+      _id: itemRequest._id,
+      title: itemRequest.title,
+      category: itemRequest.category,
+      status: itemRequest.status,
+    },
+    otherUser,
+    lastMessage: null,
+    unread: 0,
+    myRole: String(currentUserId) === requesterId ? 'requester' : 'provider',
+    otherRole: oid === requesterId ? 'requester' : 'provider',
+    isDraft: true,
+  };
+}
+
+const getContextId = (conv) => (
+  conv.contextType === 'request' ? conv.itemRequest?._id : conv.product?._id
+);
 
 export default function Conversations() {
   const { user } = useAuth();
@@ -73,6 +113,7 @@ export default function Conversations() {
   const [draftLoading, setDraftLoading] = useState(false);
 
   const productParam = searchParams.get('product');
+  const requestParam = searchParams.get('request');
   const userParam = searchParams.get('user');
 
   const fetchConvs = useCallback(async (silent = false) => {
@@ -95,16 +136,19 @@ export default function Conversations() {
     return () => clearInterval(t);
   }, [fetchConvs]);
 
-  // Open existing thread or bootstrap a new chat from ?product=&user=
   useEffect(() => {
-    if (!productParam || !userParam) {
+    const contextType = requestParam ? 'request' : 'product';
+    const contextId = requestParam || productParam;
+
+    if (!contextId || !userParam) {
       setDraftConv(null);
       return;
     }
 
     const existing = convs.find(
       (c) =>
-        String(c.product._id) === productParam &&
+        (c.contextType || 'product') === contextType &&
+        String(getContextId(c)) === contextId &&
         String(c.otherUser._id) === userParam
     );
     if (existing) {
@@ -117,11 +161,17 @@ export default function Conversations() {
 
     let cancelled = false;
     setDraftLoading(true);
-    api
-      .get(`/products/${productParam}`)
+
+    const request = contextType === 'request'
+      ? api.get(`/requests/${contextId}`)
+      : api.get(`/products/${contextId}`);
+
+    request
       .then(({ data }) => {
         if (cancelled) return;
-        const draft = buildDraftFromProduct(data, userParam, user?.id);
+        const draft = contextType === 'request'
+          ? buildDraftFromRequest(data, userParam, user?.id)
+          : buildDraftFromProduct(data, userParam, user?.id);
         if (!draft) {
           setDraftConv(null);
           return;
@@ -139,24 +189,29 @@ export default function Conversations() {
     return () => {
       cancelled = true;
     };
-  }, [productParam, userParam, convs, loading, user?.id]);
+  }, [productParam, requestParam, userParam, convs, loading, user?.id]);
 
   const selectConv = (conv) => {
     setSelected(conv);
-    navigate(`/messages?product=${conv.product._id}&user=${conv.otherUser._id}`, { replace: true });
+    if (conv.contextType === 'request') {
+      navigate(`/messages?request=${conv.itemRequest._id}&user=${conv.otherUser._id}`, { replace: true });
+    } else {
+      navigate(`/messages?product=${conv.product._id}&user=${conv.otherUser._id}`, { replace: true });
+    }
   };
 
   const totalUnread = convs.reduce((n, c) => n + (c.unread || 0), 0);
   const listItems = draftConv
     ? [draftConv, ...convs.filter(
         (c) =>
-          String(c.product._id) !== String(draftConv.product._id) ||
+          (c.contextType || 'product') !== draftConv.contextType ||
+          String(getContextId(c)) !== String(getContextId(draftConv)) ||
           String(c.otherUser._id) !== String(draftConv.otherUser._id)
       )]
     : convs;
 
   const showFullEmpty =
-    !loading && !draftLoading && listItems.length === 0 && !productParam;
+    !loading && !draftLoading && listItems.length === 0 && !productParam && !requestParam;
 
   const activeChat = selected;
 
@@ -180,7 +235,7 @@ export default function Conversations() {
             onClick={() => fetchConvs(true)}
             disabled={refreshing}
           >
-            {refreshing ? <span className="spinner" /> : '↻ Refresh'}
+            {refreshing ? <span className="spinner" /> : 'Refresh'}
           </button>
         </div>
 
@@ -190,21 +245,26 @@ export default function Conversations() {
           <div className="empty-state inbox-empty">
             <div className="empty-icon">💬</div>
             <h3>No messages yet</h3>
-            <p>Open a listing and tap &quot;Chat with Seller&quot; to start.</p>
+            <p>Open a listing or request to start a conversation.</p>
           </div>
         ) : (
           <div className="inbox-split">
             <div className="inbox-list">
               {listItems.map((conv) => {
-                const key = `${conv.product._id}-${conv.otherUser._id}`;
+                const isRequest = conv.contextType === 'request';
+                const context = isRequest ? conv.itemRequest : conv.product;
+                const key = `${isRequest ? 'request' : 'product'}-${context._id}-${conv.otherUser._id}`;
                 const isMe =
                   conv.lastMessage &&
                   String(conv.lastMessage.sender._id) === String(user?.id);
-                const roleLabel = conv.otherRole === 'seller' ? 'Seller' : conv.isDraft ? 'Seller' : 'Buyer';
+                const roleLabel = isRequest
+                  ? conv.otherRole === 'requester' ? 'Requester' : 'Provider'
+                  : conv.otherRole === 'seller' ? 'Seller' : 'Buyer';
                 const otherInitial = conv.otherUser.name?.charAt(0)?.toUpperCase() || '?';
                 const isActive =
                   activeChat &&
-                  String(activeChat.product._id) === String(conv.product._id) &&
+                  (activeChat.contextType || 'product') === (conv.contextType || 'product') &&
+                  String(getContextId(activeChat)) === String(getContextId(conv)) &&
                   String(activeChat.otherUser._id) === String(conv.otherUser._id);
 
                 return (
@@ -214,15 +274,19 @@ export default function Conversations() {
                     className={`inbox-item ${conv.unread > 0 ? 'has-unread' : ''} ${isActive ? 'active' : ''} ${conv.isDraft ? 'is-draft' : ''}`}
                     onClick={() => selectConv(conv)}
                   >
-                    <img
-                      className="inbox-item-img"
-                      src={resolveProductImageSrc(getPrimaryProductImage(conv.product))}
-                      alt=""
-                      onError={handleProductImageError}
-                    />
+                    {isRequest ? (
+                      <div className="inbox-item-img inbox-item-request-icon" aria-hidden="true">?</div>
+                    ) : (
+                      <img
+                        className="inbox-item-img"
+                        src={resolveProductImageSrc(getPrimaryProductImage(conv.product))}
+                        alt=""
+                        onError={handleProductImageError}
+                      />
+                    )}
                     <div className="inbox-item-body">
                       <div className="inbox-item-top">
-                        <span className="inbox-item-title">{conv.product?.title}</span>
+                        <span className="inbox-item-title">{context?.title}</span>
                         {conv.lastMessage && (
                           <span className="inbox-item-time">
                             {formatTime(conv.lastMessage.createdAt)}
@@ -242,7 +306,11 @@ export default function Conversations() {
                           {conv.otherUser.name}
                         </span>
                         <span>·</span>
-                        <span>₹{Number(conv.product?.price || 0).toLocaleString('en-IN')}</span>
+                        {isRequest ? (
+                          <span>{context?.category || 'Request'}</span>
+                        ) : (
+                          <span>₹{Number(context?.price || 0).toLocaleString('en-IN')}</span>
+                        )}
                       </div>
                       <p className={`inbox-item-preview ${conv.unread > 0 ? 'unread' : ''}`}>
                         {conv.isDraft
@@ -261,11 +329,13 @@ export default function Conversations() {
             <div className="inbox-chat-pane">
               {activeChat ? (
                 <ChatPanel
-                  key={`${activeChat.product._id}-${activeChat.otherUser._id}`}
-                  productId={activeChat.product._id}
+                  key={`${activeChat.contextType || 'product'}-${getContextId(activeChat)}-${activeChat.otherUser._id}`}
+                  productId={activeChat.contextType === 'request' ? undefined : activeChat.product._id}
+                  itemRequestId={activeChat.contextType === 'request' ? activeChat.itemRequest._id : undefined}
                   otherUserId={activeChat.otherUser._id}
                   otherUser={activeChat.otherUser}
-                  product={activeChat.product}
+                  product={activeChat.contextType === 'request' ? undefined : activeChat.product}
+                  itemRequest={activeChat.contextType === 'request' ? activeChat.itemRequest : undefined}
                   compact
                   onMessageSent={() => fetchConvs(true)}
                 />

@@ -19,15 +19,18 @@ const formatDateSep = (ts) =>
 
 export default function ChatPanel({
   productId,
+  itemRequestId,
   otherUserId,
   otherUser: otherUserProp,
   product: productProp,
+  itemRequest: itemRequestProp,
   compact = false,
   onMessageSent,
 }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [product, setProduct] = useState(productProp || null);
+  const [itemRequest, setItemRequest] = useState(itemRequestProp || null);
   const [otherUser, setOtherUser] = useState(otherUserProp || null);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -38,8 +41,9 @@ export default function ChatPanel({
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    if (productProp) setProduct(productProp);
-    else {
+    if (productProp) {
+      setProduct(productProp);
+    } else if (productId) {
       api.get(`/products/${productId}`)
         .then(({ data }) => {
           setProduct(data);
@@ -49,12 +53,29 @@ export default function ChatPanel({
         })
         .catch(() => setError('Could not load listing'));
     }
+
+    if (itemRequestProp) {
+      setItemRequest(itemRequestProp);
+    } else if (itemRequestId) {
+      api.get(`/requests/${itemRequestId}`)
+        .then(({ data }) => {
+          setItemRequest(data);
+          if (!otherUserProp && String(data.requester?._id) !== String(user?.id)) {
+            setOtherUser(data.requester);
+          }
+        })
+        .catch(() => setError('Could not load request'));
+    }
+
     if (otherUserProp) setOtherUser(otherUserProp);
-  }, [productId, productProp, otherUserProp, user?.id]);
+  }, [productId, itemRequestId, productProp, itemRequestProp, otherUserProp, user?.id]);
 
   const fetchMessages = useCallback(async (silent = false) => {
     try {
-      const { data } = await api.get(`/messages/${productId}/${otherUserId}`);
+      const url = itemRequestId
+        ? `/messages/request/${itemRequestId}/${otherUserId}`
+        : `/messages/${productId}/${otherUserId}`;
+      const { data } = await api.get(url);
       setMessages((prev) => (messagesSignature(prev) === messagesSignature(data) ? prev : data));
       if (!otherUser && data.length > 0) {
         const msg = data.find((m) => String(m.sender._id) !== String(user?.id));
@@ -66,7 +87,7 @@ export default function ChatPanel({
     } finally {
       setLoading(false);
     }
-  }, [productId, otherUserId, user?.id, otherUser]);
+  }, [productId, itemRequestId, otherUserId, user?.id, otherUser]);
 
   useEffect(() => {
     setLoading(true);
@@ -74,7 +95,7 @@ export default function ChatPanel({
     fetchMessages();
     pollRef.current = setInterval(() => fetchMessages(true), POLL_INTERVAL);
     return () => clearInterval(pollRef.current);
-  }, [productId, otherUserId, fetchMessages]);
+  }, [productId, itemRequestId, otherUserId, fetchMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,11 +106,14 @@ export default function ChatPanel({
     setSending(true);
     setError('');
     try {
-      const { data } = await api.post('/messages', {
-        productId,
+      const payload = {
         receiverId: String(otherUserId),
         text: text.trim(),
-      });
+      };
+      if (itemRequestId) payload.itemRequestId = itemRequestId;
+      else payload.productId = productId;
+
+      const { data } = await api.post('/messages', payload);
       setMessages((prev) => [...prev, data]);
       setText('');
       textareaRef.current?.focus();
@@ -109,7 +133,7 @@ export default function ChatPanel({
   };
 
   const otherInitial = otherUser?.name?.charAt(0)?.toUpperCase() || '?';
-
+  const isRequestChat = !!itemRequestId;
   let lastDate = '';
 
   return (
@@ -123,6 +147,9 @@ export default function ChatPanel({
             onError={handleProductImageError}
           />
         )}
+        {isRequestChat && !product && (
+          <div className="chat-header-img chat-header-request-icon" aria-hidden="true">?</div>
+        )}
         <div className="chat-header-info">
           <h2 className="chat-user-heading">
             <span className="user-avatar user-avatar-sm" aria-hidden="true">
@@ -135,17 +162,28 @@ export default function ChatPanel({
             {otherUser?.name || 'Chat'}
           </h2>
           <p>
-            <Link to={`/product/${productId}`}>{product?.title}</Link>
-            {product && (
-              <span className="chat-header-price">
-                · ₹{Number(product.price).toLocaleString('en-IN')}
-              </span>
+            {productId ? (
+              <>
+                <Link to={`/product/${productId}`}>{product?.title}</Link>
+                {product && (
+                  <span className="chat-header-price">
+                    · ₹{Number(product.price).toLocaleString('en-IN')}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span>{itemRequest?.title || 'Item request'}</span>
             )}
           </p>
         </div>
         {product && (
           <span className={`badge ${product.status === 'available' ? 'badge-available' : 'badge-sold'}`}>
             {product.status}
+          </span>
+        )}
+        {itemRequest && (
+          <span className={`badge ${itemRequest.status === 'open' ? 'badge-blue' : 'badge-green'}`}>
+            {itemRequest.status === 'open' ? 'Open request' : 'Fulfilled'}
           </span>
         )}
       </div>
@@ -189,7 +227,7 @@ export default function ChatPanel({
         <textarea
           ref={textareaRef}
           className="chat-input"
-          placeholder="Type a reply…"
+          placeholder="Type a reply..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}

@@ -2,6 +2,18 @@ const { Resend } = require('resend');
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const escapeHtml = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
+const getEmailClientState = () => ({
+  isDummyKey: process.env.RESEND_API_KEY === 're_your_api_key_here',
+  fromEmail: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+});
+
 /**
  * Send an OTP verification email using Resend
  * @param {string} toEmail - Recipient email address
@@ -10,12 +22,12 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 const sendOtpEmail = async (toEmail, otp, name) => {
-  const isDummyKey = process.env.RESEND_API_KEY === 're_your_api_key_here';
+  const { isDummyKey, fromEmail } = getEmailClientState();
   
   if (!resend || isDummyKey) {
     if (process.env.NODE_ENV === 'development') {
       console.log('\n=========================================');
-      console.log(`🔒 LOCAL DEV OTP for ${toEmail}: ${otp}`);
+      console.log(`LOCAL DEV OTP for ${toEmail}: ${otp}`);
       console.log('=========================================\n');
       return { success: true };
     }
@@ -23,13 +35,10 @@ const sendOtpEmail = async (toEmail, otp, name) => {
     return { success: false, error: 'Email service is not configured' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-  
-  // Basic HTML escaping to prevent XSS
-  const safeName = String(name).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  const safeName = escapeHtml(name);
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
       subject: 'Verify your Campus Market Account',
@@ -64,23 +73,22 @@ const sendOtpEmail = async (toEmail, otp, name) => {
 };
 
 const sendNewMessageEmail = async (toEmail, recipientName, senderName, productName, productUrl) => {
-  const isDummyKey = process.env.RESEND_API_KEY === 're_your_api_key_here';
+  const { isDummyKey, fromEmail } = getEmailClientState();
   
   if (!resend || isDummyKey) {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`\n🔒 LOCAL DEV NEW MESSAGE for ${toEmail}: ${senderName} messaged about ${productName}\n`);
+      console.log(`\nLOCAL DEV NEW MESSAGE for ${toEmail}: ${senderName} messaged about ${productName}\n`);
       return { success: true };
     }
     return { success: false, error: 'Email service is not configured' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-  const safeName = String(recipientName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const safeSender = String(senderName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const safeProduct = String(productName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeName = escapeHtml(recipientName);
+  const safeSender = escapeHtml(senderName);
+  const safeProduct = escapeHtml(productName);
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
       subject: `New Message from ${safeSender} about ${safeProduct}`,
@@ -108,4 +116,48 @@ const sendNewMessageEmail = async (toEmail, recipientName, senderName, productNa
   }
 };
 
-module.exports = { sendOtpEmail, sendNewMessageEmail };
+const sendRequestOfferEmail = async (toEmail, recipientName, senderName, requestTitle, inboxUrl) => {
+  const { isDummyKey, fromEmail } = getEmailClientState();
+
+  if (!resend || isDummyKey) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`\nLOCAL DEV REQUEST OFFER for ${toEmail}: ${senderName} can help with ${requestTitle}\n`);
+      return { success: true };
+    }
+    return { success: false, error: 'Email service is not configured' };
+  }
+
+  const safeName = escapeHtml(recipientName);
+  const safeSender = escapeHtml(senderName);
+  const safeRequest = escapeHtml(requestTitle);
+
+  try {
+    const { error } = await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: `${safeSender} has your requested item: ${safeRequest}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+          <h2 style="color: #1e293b;">Someone can help with your request</h2>
+          <p>Hi ${safeName},</p>
+          <p><strong>${safeSender}</strong> clicked <strong>I have this</strong> for your request: <strong>${safeRequest}</strong>.</p>
+          <p>A conversation has been created in your inbox so you can continue safely on NITP Market.</p>
+
+          <div style="margin: 30px 0;">
+            <a href="${inboxUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Open Inbox</a>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #64748b; text-align: center;">NIT Patna Marketplace</p>
+        </div>
+      `,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: 'Failed to send email' };
+  }
+};
+
+module.exports = { sendOtpEmail, sendNewMessageEmail, sendRequestOfferEmail };
