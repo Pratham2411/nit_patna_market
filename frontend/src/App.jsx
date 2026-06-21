@@ -19,6 +19,7 @@ import Wishlist from './pages/Wishlist';
 import Requests from './pages/Requests';
 
 import AdminRoute from './components/AdminRoute';
+import BottomNav from './components/BottomNav';
 
 function shouldShowSplash() {
   try {
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         </Routes>
+        <BottomNav />
       </BrowserRouter>
     </AuthProvider>
   );

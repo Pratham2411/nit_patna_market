@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { mediaUrl } from '../utils/mediaUrl';
 
 import '../styles/profile.css';
 
 export default function Profile() {
   const { user: authUser, logout, updateUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -269,6 +271,19 @@ export default function Profile() {
               </p>
             </div>
           </div>
+
+          <div className="glass-card profile-card" style={{ marginTop: '24px' }}>
+            <h3 style={{ marginBottom: '16px' }}>App Settings</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button type="button" className="btn btn-secondary" onClick={toggleTheme} style={{ justifyContent: 'center' }}>
+                {theme === 'dark' ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode'}
+              </button>
+              <button type="button" className="btn btn-danger" onClick={() => { logout(); navigate('/login'); }} style={{ justifyContent: 'center' }}>
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </main>

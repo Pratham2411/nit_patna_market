@@ -2150,3 +2150,166 @@ button { cursor: pointer; font-family: var(--font); }
   .admin-filter-pill { min-height: 44px; }
 }
 
+/* ============================================================
+   MOBILE REDESIGN (Bottom Nav & Horizontal Filters)
+   ============================================================ */
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 72px;
+  background: var(--navbar-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--navbar-border);
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+  
+  /* Hide the top navigation hamburger & links completely on mobile */
+  .mobile-menu-btn { display: none !important; }
+  .navbar-links { display: none !important; }
+  
+  /* Ensure page content isn't hidden behind the bottom nav */
+  .page-content { padding-bottom: calc(72px + env(safe-area-inset-bottom) + 32px) !important; }
+  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.7rem;
+  font-weight: 500;
+  flex: 1;
+  height: 100%;
+  transition: color var(--transition);
+  position: relative;
+}
+
+.bottom-nav-item.active {
+  color: var(--accent);
+}
+
+.bottom-nav-icon {
+  font-size: 1.4rem;
+  transition: transform 0.2s var(--spring);
+}
+
+.bottom-nav-item:active .bottom-nav-icon {
+  transform: scale(0.85);
+}
+
+.bottom-nav-item.active .bottom-nav-icon {
+  transform: scale(1.1);
+}
+
+.bottom-nav-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.bottom-nav-badge {
+  position: absolute;
+  top: -4px; right: -8px;
+  background: var(--danger);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 0 4px;
+  min-width: 16px; height: 16px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--bg-base);
+}
+
+.bottom-nav-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border: 1px solid transparent;
+  transition: border-color var(--transition);
+}
+
+.bottom-nav-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.bottom-nav-item.active .bottom-nav-avatar {
+  border-color: var(--accent);
+}
+
+/* Sell FAB */
+.sell-fab-wrapper {
+  position: relative;
+  top: -16px;
+}
+
+.sell-fab {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 15px var(--accent-glow);
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: transform 0.2s var(--spring), box-shadow 0.2s;
+  text-decoration: none;
+}
+
+.sell-fab:active {
+  transform: translateX(-50%) scale(0.9);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* Horizontal Filters Row for Mobile */
+@media (max-width: 768px) {
+  .filters-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    gap: 8px !important;
+    padding: 4px !important;
+    margin: 0 -24px 24px -24px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+  }
+  
+  .filters-bar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  .filters-bar > * {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    white-space: nowrap;
+    border-radius: 20px !important;
+  }
+  
+  .search-wrap { min-width: 180px; }
+  .search-wrap .form-input { border-radius: 20px; }
+}
+
