@@ -8,7 +8,7 @@ import { mediaUrl } from '../utils/mediaUrl';
 import '../styles/profile.css';
 
 export default function Profile() {
-  const { user: authUser, logout, updateUser } = useAuth();
+  const { user: authUser, logout, updateUser, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -278,6 +278,11 @@ export default function Profile() {
               <button type="button" className="btn btn-secondary" onClick={toggleTheme} style={{ justifyContent: 'center' }}>
                 {theme === 'dark' ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode'}
               </button>
+              {isAdmin && (
+                <button type="button" className="btn btn-primary" onClick={() => navigate('/admin')} style={{ justifyContent: 'center' }}>
+                  ⚙️ Admin Dashboard
+                </button>
+              )}
               <button type="button" className="btn btn-danger" onClick={() => { logout(); navigate('/login'); }} style={{ justifyContent: 'center' }}>
                 🚪 Logout
               </button>
