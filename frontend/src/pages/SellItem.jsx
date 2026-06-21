@@ -61,6 +61,8 @@ export default function SellItem() {
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
+  const setCategory = (cat) => setForm(prev => ({ ...prev, category: cat }));
+
   const handleAddFiles = (files) => {
     setError('');
     const room = MAX_LISTING_IMAGES - imageItems.length;
@@ -89,8 +91,8 @@ export default function SellItem() {
     e.preventDefault();
     setError('');
 
-    if (!form.title || !form.description || !form.price || !form.category) {
-      setError('All fields are required');
+    if (!form.title || !form.price || !form.category) {
+      setError('Title, Price, and Category are required');
       return;
     }
     if (!imageItems.length) {
@@ -106,7 +108,7 @@ export default function SellItem() {
     try {
       const payload = new FormData();
       payload.append('title', form.title);
-      payload.append('description', form.description);
+      payload.append('description', form.description); // Optional visually, but keeping it
       payload.append('price', form.price);
       payload.append('category', form.category);
 
@@ -134,60 +136,105 @@ export default function SellItem() {
   if (fetching) return <div className="loader-page"><div className="spinner" /></div>;
 
   return (
-    <main className="page-content" style={{ paddingBottom: '120px' }}>
+    <main className="page-content" style={{ paddingBottom: '120px', background: 'var(--bg-base)' }}>
       <div className="container" style={{ maxWidth: 640 }}>
         
-        <form id="sell-form" onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+          <h1 className="page-title" style={{ marginBottom: '8px' }}>{isEdit ? 'Edit Listing' : 'What are you selling?'}</h1>
+          <p className="page-subtitle">Tap and type to list your item instantly.</p>
+        </div>
+
+        <form id="sell-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Top Image Uploader - Most important part of listing! */}
-          <div style={{ marginBottom: '32px' }}>
+          {/* Card 1: Photos */}
+          <div className="glass-card" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📷</span> Photos
+            </h3>
             <ImageUploader
               items={imageItems}
               onAddFiles={handleAddFiles}
               onRemove={handleRemoveImage}
               disabled={loading}
-              label={`Photos * (up to ${MAX_LISTING_IMAGES})`}
-              hint="Tap to add photos. First photo is the cover image."
+              label=""
+              hint="Add up to 8 photos. First photo is the cover."
             />
           </div>
 
-          <div className="glass-card" style={{ padding: '32px 24px' }}>
-            {/* Title - Large Typography */}
-            <div className="form-group" style={{ marginBottom: '24px' }}>
+          {/* Card 2: Details */}
+          <div className="glass-card" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📝</span> Details
+            </h3>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
               <input
                 id="sell-title"
                 name="title"
-                placeholder="What are you selling?"
+                placeholder="Title (e.g. Engineering Math Book)"
                 value={form.title}
                 onChange={handleChange}
                 required
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '2px solid var(--border)',
-                  fontSize: '2rem',
-                  fontWeight: '800',
-                  color: 'var(--text-primary)',
-                  padding: '8px 0',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  fontFamily: 'var(--font-display)'
-                }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                className="form-input"
+                style={{ fontSize: '1.1rem', padding: '16px', borderRadius: '12px', background: 'var(--bg-body)', border: 'none' }}
               />
             </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <textarea
+                id="sell-description"
+                name="description"
+                placeholder="Description (Optional) Condition, edition, defects..."
+                value={form.description}
+                onChange={handleChange}
+                rows={3}
+                className="form-textarea"
+                style={{ fontSize: '1rem', padding: '16px', borderRadius: '12px', background: 'var(--bg-body)', border: 'none', resize: 'vertical' }}
+              />
+            </div>
+          </div>
 
-            {/* Price - Large Typography */}
-            <div className="form-group" style={{ marginBottom: '32px', position: 'relative' }}>
+          {/* Card 3: Categorization */}
+          <div className="glass-card" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🏷️</span> Category
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '24px',
+                    border: form.category === cat ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    background: form.category === cat ? 'var(--accent)' : 'var(--bg-body)',
+                    color: form.category === cat ? 'white' : 'var(--text-primary)',
+                    fontWeight: form.category === cat ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Card 4: Pricing */}
+          <div className="glass-card" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>💰</span> Price
+            </h3>
+            <div style={{ position: 'relative' }}>
               <span style={{
                 position: 'absolute',
-                left: 0,
-                top: '12px',
-                fontSize: '1.5rem',
+                left: '20px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '1.2rem',
                 color: 'var(--text-muted)',
-                fontWeight: '600'
+                fontWeight: 'bold'
               }}>₹</span>
               <input
                 id="sell-price"
@@ -198,55 +245,20 @@ export default function SellItem() {
                 value={form.price}
                 onChange={handleChange}
                 required
-                style={{
-                  width: '100%',
-                  background: 'transparent',
+                className="form-input"
+                style={{ 
+                  fontSize: '1.2rem', 
+                  padding: '16px 16px 16px 40px', 
+                  borderRadius: '12px', 
+                  background: 'var(--bg-body)', 
                   border: 'none',
-                  borderBottom: '2px solid var(--border)',
-                  fontSize: '1.5rem',
-                  fontWeight: '700',
-                  color: 'var(--accent-light)',
-                  padding: '8px 0 8px 24px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
+                  fontWeight: 'bold'
                 }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
               />
             </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label" htmlFor="sell-category">Category *</label>
-                <select
-                  id="sell-category"
-                  className="form-select"
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                >
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="sell-description">Description *</label>
-              <textarea
-                id="sell-description"
-                className="form-textarea"
-                name="description"
-                placeholder="Describe the condition, edition, any defects, etc."
-                value={form.description}
-                onChange={handleChange}
-                rows={5}
-                required
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-
-            {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
           </div>
+
+          {error && <p className="form-error" style={{ textAlign: 'center' }}>{error}</p>}
 
           {/* Sticky Bottom Actions */}
           <div style={{
@@ -267,8 +279,8 @@ export default function SellItem() {
               <button
                 type="button"
                 className="btn btn-secondary btn-lg"
-                onClick={() => navigate('/dashboard')}
-                style={{ flex: 1 }}
+                onClick={() => navigate(-1)}
+                style={{ flex: 1, borderRadius: '16px' }}
               >
                 Cancel
               </button>
@@ -277,11 +289,11 @@ export default function SellItem() {
                 type="submit"
                 className="btn btn-primary btn-lg"
                 disabled={loading}
-                style={{ flex: 2 }}
+                style={{ flex: 2, borderRadius: '16px' }}
               >
                 {loading
                   ? <><span className="spinner" /> {isEdit ? 'Saving…' : 'Publishing…'}</>
-                  : isEdit ? '💾 Save Changes' : '🚀 Publish Listing'}
+                  : isEdit ? '💾 Save Changes' : '🚀 Publish Item'}
               </button>
             </div>
           </div>
