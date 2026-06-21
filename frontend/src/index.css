@@ -1814,12 +1814,12 @@ button { cursor: pointer; font-family: var(--font); }
 .admin-panel-grid {
   display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: start;
 }
+.admin-form-card { padding: 24px; position: sticky; top: 96px; z-index: 10; }
+
 @media (max-width: 960px) {
   .admin-panel-grid { grid-template-columns: 1fr; }
-  .admin-form-card { position: static; z-index: 1; }
+  .admin-form-card { position: static !important; z-index: 1 !important; }
 }
-
-.admin-form-card { padding: 24px; position: sticky; top: 96px; z-index: 10; }
 .admin-panel-card-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
 .admin-panel-card-desc { margin: 0 0 20px; font-size: 0.85rem; color: var(--text-muted); }
 .admin-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
