@@ -207,8 +207,8 @@ const products = await Product.find(query)
 
 ## Third-Party API Integrations
 
-### Resend (Emails)
-`backend/utils/resendEmail.js` wraps the Resend API. When `messageRoutes.js` receives a new chat message, it calls `sendNewMessageEmail(receiverEmail, ...)`. This is an asynchronous side-effect, ensuring sellers are notified even when offline.
+### Resend (Emails) & Cron Jobs
+`backend/utils/resendEmail.js` wraps the Resend API. To prevent hitting rate limits and avoid spamming users, we use a daily digest system. When `messageRoutes.js` or `requestRoutes.js` receives a new interaction, it saves a document to the `NotificationQueue` collection. A `node-cron` job (`backend/jobs/emailDigestCron.js`) runs at midnight IST to group these notifications and send a single summary email per user via Resend.
 
 ### Cloudinary (Images)
 `backend/utils/imageStorage.js` takes the Multer memory buffer and streams it to Cloudinary via `cloudinary.uploader.upload_stream`. Cloudinary responds with a `secure_url` which is saved to the Product document.

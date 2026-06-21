@@ -47,14 +47,15 @@ From `backend/routes/authRoutes.js`:
 | ❤️ Wishlist | Save products with optimistic UI updates |
 | 📢 Requests | Dedicated noticeboard to request specific items to buy |
 | 📱 WhatsApp | Direct deep-link to seller's WhatsApp from product page |
-| 📧 Emails | Automated email notifications via Resend API when users receive new messages |
+| 📞 Direct Contact | Call and Email buttons on product and request pages for direct communication |
+| 📧 Emails | Automated daily digest email notifications (via Resend API + node-cron) for new messages and request offers |
 | 📱 PWA | Progressive Web App installable on mobile devices via manifest.json |
 
 ### User account
 
 | Feature | Description |
 |---------|-------------|
-| 👤 Profile | Phone, avatar upload/remove, delete account |
+| 👤 Profile | Verified Indian mobile phone requirement, avatar upload/remove, delete account |
 | 🔔 Announcements | Navbar bell; read/unread; admin-published notices |
 | 📩 Feedback | Homepage section → admin feedback inbox |
 
