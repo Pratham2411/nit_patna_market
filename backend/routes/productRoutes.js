@@ -31,7 +31,7 @@ router.get('/my/listings', auth, async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, category, minPrice, maxPrice, status } = req.query;
+    const { search, category, minPrice, maxPrice, status, sortBy } = req.query;
     const query = { isSpam: false };
 
     if (search) query.title = { $regex: search, $options: 'i' };
@@ -44,9 +44,13 @@ router.get('/', async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
+    let sortOption = { createdAt: -1 }; // default: newest
+    if (sortBy === 'lowest') sortOption = { price: 1 };
+    if (sortBy === 'highest') sortOption = { price: -1 };
+
     const products = await Product.find(query)
-      .populate('seller', 'name role avatarUrl')
-      .sort({ createdAt: -1 });
+      .populate('seller', 'name role avatarUrl isVerifiedStudent')
+      .sort(sortOption);
 
     res.json(products.map(formatProductImages));
   } catch (err) {

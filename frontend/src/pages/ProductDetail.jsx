@@ -59,6 +59,16 @@ export default function ProductDetail() {
     }
   };
 
+  const handleWhatsApp = async () => {
+    if (!product.seller?.phone) {
+      return showToast("Seller hasn't provided a phone number", "error");
+    }
+    
+    let text = `Hi ${product.seller.name}, I saw your listing for "${product.title}" on NITP Market. Is it still available?`;
+    const formattedPhone = product.seller.phone.replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   const sellerInitial = product?.seller?.name?.charAt(0)?.toUpperCase() || '?';
 
   if (loading) return <div className="loader-page"><div className="spinner" /></div>;
@@ -104,6 +114,7 @@ export default function ProductDetail() {
                   <span className="detail-seller-label">Seller</span>
                   <div className="detail-seller-name">
                     <strong>{product.seller?.name}</strong>
+                    {product.seller?.isVerifiedStudent && <span title="Verified NITP Student" style={{ marginLeft: 4 }}>🎓</span>}
                     {product.seller?.role === 'admin' && <AdminBadge />}
                   </div>
                 </div>
@@ -158,15 +169,23 @@ export default function ProductDetail() {
                 </>
               ) : (
                 product.status === 'available' && user && (
-                  <button
-                    className="btn btn-primary btn-lg"
-                    onClick={() => {
-                      const sellerId = product.seller?._id || product.seller;
-                      navigate(`/messages?product=${product._id}&user=${sellerId}`);
-                    }}
-                  >
-                    💬 Chat with Seller
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                    <button
+                      className="btn btn-primary btn-lg"
+                      onClick={() => {
+                        const sellerId = product.seller?._id || product.seller;
+                        navigate(`/messages?product=${product._id}&user=${sellerId}`);
+                      }}
+                      style={{ width: '100%' }}
+                    >
+                      💬 Chat with Seller
+                    </button>
+                    {product.seller?.phone && (
+                      <button className="btn btn-secondary" onClick={handleWhatsApp} style={{ backgroundColor: '#25D366', color: 'white', borderColor: '#25D366' }}>
+                        📱 WhatsApp
+                      </button>
+                    )}
+                  </div>
                 )
               )}
               {!user && product.status === 'available' && (

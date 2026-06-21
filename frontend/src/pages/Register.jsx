@@ -121,9 +121,11 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-card-header">
-          <div className="auth-logo">🎓</div>
-          <h1>Join Campus Marketplace</h1>
-          <p>Students/admins only — register with your college email</p>
+          <div className="auth-logo">
+            <img src="/nitp-logo.png" alt="NIT Patna Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+          <h1>Join NIT Patna Marketplace</h1>
+          <p>Register with your college email to start trading</p>
         </div>
 
         {step === 'form' ? (

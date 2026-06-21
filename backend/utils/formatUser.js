@@ -16,6 +16,8 @@ const formatUser = (user) => ({
   isEmailVerified: !!user.isEmailVerified,
   phone: user.phone || '',
   avatarUrl: user.avatarUrl || '',
+  isVerifiedStudent: !!user.isVerifiedStudent,
+  wishlist: user.wishlist || [],
 });
 
 module.exports = { formatUser, resolveRole };

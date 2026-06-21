@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;
   font-size: 2rem;
   font-weight: 900;
@@ -39,7 +39,7 @@
 
 .profile-eyebrow {
   display: block;
-  color: var(--accent-light);
+  color: var(--accent);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -48,6 +48,7 @@
 }
 
 .profile-hero h1 {
+  font-family: var(--font-display);
   font-size: clamp(1.65rem, 4vw, 2.4rem);
   line-height: 1.1;
   margin: 0 0 6px;
@@ -96,13 +97,23 @@
 .profile-avatar-ring {
   width: 120px;
   height: 120px;
-  border-radius: 9999px;
-  background: rgba(124, 58, 237, 0.12);
-  border: 1px solid rgba(124, 58, 237, 0.45);
+  border-radius: var(--radius-full);
+  background: var(--accent-glow);
+  border: 1px solid rgba(212, 160, 23, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+[data-theme="light"] .profile-avatar-ring {
+  background: rgba(30, 58, 95, 0.08);
+  border-color: rgba(30, 58, 95, 0.25);
+}
+
+.profile-avatar-ring:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 .profile-avatar-img {
@@ -112,7 +123,7 @@
 }
 
 .profile-avatar-empty {
-  color: var(--accent-light);
+  color: var(--accent);
   font-size: 2rem;
   font-weight: 900;
 }
@@ -132,6 +143,10 @@
   border-radius: var(--radius-md);
   background: var(--bg-card);
   border: 1px solid var(--border);
+  transition: background 0.3s ease;
+}
+[data-theme="light"] .profile-meta-row {
+  background: var(--bg-surface);
 }
 .profile-meta-label { color: var(--text-muted); font-size: 0.85rem; }
 .profile-meta-value { color: var(--text-primary); font-weight: 700; }
@@ -151,4 +166,3 @@
     font-size: 1.6rem;
   }
 }
-

@@ -178,6 +178,8 @@ router.post('/register/verify-otp', async (req, res) => {
         emailVerificationExpires: null,
         phone: '',
         avatarUrl: '',
+        isVerifiedStudent: emailLower.endsWith(NITP_DOMAIN),
+        wishlist: [],
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -278,6 +280,8 @@ router.post('/register', async (req, res) => {
       isEmailVerified: true,
       emailVerificationTokenHash: '',
       emailVerificationExpires: null,
+      isVerifiedStudent: emailLower.endsWith(NITP_DOMAIN),
+      wishlist: []
     });
 
     return res.status(201).json({ token: signToken(user), user: formatUser(user) });
@@ -387,6 +391,32 @@ router.delete('/me', auth, async (req, res) => {
     ]);
 
     res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── POST /api/auth/wishlist/:productId ─────────────────────────────────────
+router.post('/wishlist/:productId', auth, async (req, res) => {
+  try {
+    const user = req.userDoc;
+    if (!user.wishlist.includes(req.params.productId)) {
+      user.wishlist.push(req.params.productId);
+      await user.save();
+    }
+    res.json({ wishlist: user.wishlist });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── DELETE /api/auth/wishlist/:productId ───────────────────────────────────
+router.delete('/wishlist/:productId', auth, async (req, res) => {
+  try {
+    const user = req.userDoc;
+    user.wishlist = user.wishlist.filter((id) => id.toString() !== req.params.productId);
+    await user.save();
+    res.json({ wishlist: user.wishlist });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

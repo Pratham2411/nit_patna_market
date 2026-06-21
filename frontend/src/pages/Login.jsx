@@ -36,9 +36,11 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-card-header">
-          <div className="auth-logo">🛒</div>
+          <div className="auth-logo">
+            <img src="/nitp-logo.png" alt="NIT Patna Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
           <h1>Welcome back</h1>
-          <p>Log in to your Campus Market account</p>
+          <p>Log in to your NIT Patna Marketplace account</p>
         </div>
 
         <form id="login-form" onSubmit={handleSubmit}>

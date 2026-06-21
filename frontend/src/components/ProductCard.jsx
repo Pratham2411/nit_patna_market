@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { mediaUrl } from '../utils/mediaUrl';
 import { getPrimaryProductImage, resolveProductImageSrc, handleProductImageError } from '../utils/productImage';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 
 const CATEGORY_COLORS = {
   Books:       'badge-blue',
@@ -14,7 +16,32 @@ const CATEGORY_COLORS = {
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
+  const { user, updateUser, isAuthenticated } = useAuth();
   const sellerInitial = product.seller?.name?.charAt(0)?.toUpperCase() || '?';
+
+  const inWishlist = user?.wishlist?.includes(product._id);
+
+  const toggleWishlist = async (e) => {
+    e.stopPropagation();
+    if (!isAuthenticated) return navigate('/login');
+    try {
+      const isAdding = !inWishlist;
+      // Optimistic update
+      const newWishlist = isAdding 
+        ? [...(user.wishlist || []), product._id]
+        : (user.wishlist || []).filter(id => id !== product._id);
+      
+      updateUser({ ...user, wishlist: newWishlist });
+
+      if (isAdding) {
+        await api.post(`/auth/wishlist/${product._id}`);
+      } else {
+        await api.delete(`/auth/wishlist/${product._id}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="product-card" onClick={() => navigate(`/product/${product._id}`)}>
@@ -30,6 +57,13 @@ export default function ProductCard({ product }) {
             {product.category}
           </span>
         </div>
+        <button 
+          className="wishlist-btn" 
+          onClick={toggleWishlist}
+          title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+        >
+          {inWishlist ? '❤️' : '🤍'}
+        </button>
         {product.status === 'sold' && (
           <div className="card-sold-overlay">
             <span>Sold</span>

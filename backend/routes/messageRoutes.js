@@ -2,6 +2,8 @@ const router = require('express').Router();
 const Message = require('../models/Message');
 const Product = require('../models/Product');
 const auth = require('../middleware/auth');
+const User = require('../models/User');
+const { sendNewMessageEmail } = require('../utils/resendEmail');
 
 router.get('/unread-count', auth, async (req, res) => {
   try {
@@ -135,6 +137,15 @@ router.post('/', auth, async (req, res) => {
     });
 
     await message.populate('sender', 'name role avatarUrl');
+    
+    // Async email notification (don't block response)
+    const receiver = await User.findById(recvId).select('email name');
+    if (receiver) {
+      const productUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/product/${productId}`;
+      sendNewMessageEmail(receiver.email, receiver.name, req.user.name || 'A user', product.title, productUrl)
+        .catch(err => console.error('Failed to send message notification:', err));
+    }
+
     res.status(201).json(message);
   } catch (err) {
     res.status(500).json({ message: err.message });

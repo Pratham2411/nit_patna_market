@@ -1,27 +1,31 @@
-<!-- 
-
-Terminal-1
-cd C:\Users\DELL\Desktop\college-marketplace\college-marketplace\backend
-npm run dev
-
-Terminal-2
-cd C:\Users\DELL\Desktop\college-marketplace\college-marketplace\frontend
-npm run start
-
-
--->
-
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Campus Market — Buy &amp; Sell on Campus</title>
-    <meta name="description" content="The easiest way to buy and sell second-hand items within your college campus. Save money, reduce waste, support your peers." />
+    <title>NIT Patna Marketplace — Buy & Sell on Campus</title>
+    <meta name="description" content="The campus marketplace for NIT Patna students. Buy and sell textbooks, electronics, furniture, and more within your campus community." />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0a0e1a" />
+    <link rel="icon" type="image/png" href="/nitp-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- Prevent FOUC: apply theme before paint -->
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'light' || t === 'dark') {
+            document.documentElement.setAttribute('data-theme', t);
+            if (t === 'light') document.querySelector('meta[name="theme-color"]').content = '#f8fafc';
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.querySelector('meta[name="theme-color"]').content = '#f8fafc';
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

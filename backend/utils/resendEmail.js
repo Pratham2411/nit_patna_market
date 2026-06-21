@@ -63,4 +63,49 @@ const sendOtpEmail = async (toEmail, otp, name) => {
   }
 };
 
-module.exports = { sendOtpEmail };
+const sendNewMessageEmail = async (toEmail, recipientName, senderName, productName, productUrl) => {
+  const isDummyKey = process.env.RESEND_API_KEY === 're_your_api_key_here';
+  
+  if (!resend || isDummyKey) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`\n🔒 LOCAL DEV NEW MESSAGE for ${toEmail}: ${senderName} messaged about ${productName}\n`);
+      return { success: true };
+    }
+    return { success: false, error: 'Email service is not configured' };
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const safeName = String(recipientName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeSender = String(senderName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeProduct = String(productName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: `New Message from ${safeSender} about ${safeProduct}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+          <h2 style="color: #1e293b;">You have a new message!</h2>
+          <p>Hi ${safeName},</p>
+          <p><strong>${safeSender}</strong> has sent you a message regarding your listing for <strong>${safeProduct}</strong>.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${productUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Message</a>
+          </div>
+          
+          <p>If you have any questions, feel free to reply directly to them on the platform.</p>
+          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #64748b; text-align: center;">NIT Patna Marketplace</p>
+        </div>
+      `,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: 'Failed to send email' };
+  }
+};
+
+module.exports = { sendOtpEmail, sendNewMessageEmail };

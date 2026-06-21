@@ -22,6 +22,8 @@ const userSchema = new mongoose.Schema(
 
     phone: { type: String, default: '', trim: true },
     avatarUrl: { type: String, default: '' },
+    isVerifiedStudent: { type: Boolean, default: false },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
   },
   { timestamps: true }
 );

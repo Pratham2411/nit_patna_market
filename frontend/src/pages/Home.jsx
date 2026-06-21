@@ -15,6 +15,7 @@ export default function Home() {
   const [category, setCategory] = useState('All');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [sortBy, setSortBy]     = useState('newest');
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -24,6 +25,7 @@ export default function Home() {
       if (category !== 'All') params.category = category;
       if (minPrice)           params.minPrice  = minPrice;
       if (maxPrice)           params.maxPrice  = maxPrice;
+      if (sortBy)             params.sortBy    = sortBy;
 
       const { data } = await api.get('/products', { params });
       setProducts(data);
@@ -32,7 +34,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [search, category, minPrice, maxPrice]);
+  }, [search, category, minPrice, maxPrice, sortBy]);
 
   useEffect(() => {
     const t = setTimeout(fetchProducts, 350);
@@ -44,14 +46,14 @@ export default function Home() {
       <div className="container">
         {/* Hero */}
         <section className="hero">
-          <div className="hero-eyebrow">✨ Campus-only marketplace</div>
+          <div className="hero-eyebrow">🏛️ NIT Patna Student Marketplace</div>
           <h1 className="hero-title">
             Buy &amp; Sell<br />
             <span className="gradient">Within Your Campus</span>
           </h1>
           <p className="hero-subtitle">
-            Find great deals on textbooks, electronics, and more — listed by
-            students, for students.
+            The trusted marketplace for NIT Patna students. Find great deals on textbooks,
+            electronics, and more — all from your campus community.
           </p>
           <div className="hero-cta">
             {isAuthenticated ? (
@@ -84,6 +86,16 @@ export default function Home() {
             onChange={(e) => setCategory(e.target.value)}
           >
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+          </select>
+
+          <select
+            className="form-select filter-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="newest">Newest First</option>
+            <option value="lowest">Price: Low to High</option>
+            <option value="highest">Price: High to Low</option>
           </select>
 
           <input
