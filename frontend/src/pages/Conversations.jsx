@@ -37,9 +37,11 @@ function buildDraftFromProduct(product, otherUserId, currentUserId) {
       _id: sellerId,
       name: product.seller?.name || 'Seller',
       avatarUrl: product.seller?.avatarUrl || '',
+      phone: product.seller?.phone || '',
+      email: product.seller?.email || '',
     };
   } else if (String(currentUserId) === sellerId) {
-    otherUser = { _id: oid, name: 'Buyer' };
+    otherUser = { _id: oid, name: 'Buyer', phone: '', email: '' };
   } else {
     return null;
   }
@@ -73,9 +75,11 @@ function buildDraftFromRequest(itemRequest, otherUserId, currentUserId) {
       _id: requesterId,
       name: itemRequest.requester?.name || 'Requester',
       avatarUrl: itemRequest.requester?.avatarUrl || '',
+      phone: itemRequest.requester?.phone || '',
+      email: itemRequest.requester?.email || '',
     };
   } else if (String(currentUserId) === requesterId) {
-    otherUser = { _id: oid, name: 'Provider' };
+    otherUser = { _id: oid, name: 'Provider', phone: '', email: '' };
   } else {
     return null;
   }
@@ -200,6 +204,11 @@ export default function Conversations() {
     }
   };
 
+  const deselectConv = () => {
+    setSelected(null);
+    navigate('/messages', { replace: true });
+  };
+
   const totalUnread = convs.reduce((n, c) => n + (c.unread || 0), 0);
   const listItems = draftConv
     ? [draftConv, ...convs.filter(
@@ -248,7 +257,7 @@ export default function Conversations() {
             <p>Open a listing or request to start a conversation.</p>
           </div>
         ) : (
-          <div className="inbox-split">
+          <div className={`inbox-split${activeChat ? ' has-active-chat' : ''}`}>
             <div className="inbox-list">
               {listItems.map((conv) => {
                 const isRequest = conv.contextType === 'request';
@@ -275,7 +284,14 @@ export default function Conversations() {
                     onClick={() => selectConv(conv)}
                   >
                     {isRequest ? (
-                      <div className="inbox-item-img inbox-item-request-icon" aria-hidden="true">?</div>
+                      <div className="inbox-item-img inbox-item-request-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '24px', height: '24px' }}>
+                          <circle cx="11" cy="11" r="8" />
+                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          <path d="M9.5 9.5a1.5 1.5 0 1 1 3 0c0 1-1.5 1.5-1.5 2.5" />
+                          <circle cx="11" cy="14.5" r="0.5" fill="currentColor" />
+                        </svg>
+                      </div>
                     ) : (
                       <img
                         className="inbox-item-img"
@@ -328,17 +344,27 @@ export default function Conversations() {
 
             <div className="inbox-chat-pane">
               {activeChat ? (
-                <ChatPanel
-                  key={`${activeChat.contextType || 'product'}-${getContextId(activeChat)}-${activeChat.otherUser._id}`}
-                  productId={activeChat.contextType === 'request' ? undefined : activeChat.product._id}
-                  itemRequestId={activeChat.contextType === 'request' ? activeChat.itemRequest._id : undefined}
-                  otherUserId={activeChat.otherUser._id}
-                  otherUser={activeChat.otherUser}
-                  product={activeChat.contextType === 'request' ? undefined : activeChat.product}
-                  itemRequest={activeChat.contextType === 'request' ? activeChat.itemRequest : undefined}
-                  compact
-                  onMessageSent={() => fetchConvs(true)}
-                />
+                <>
+                  <button
+                    type="button"
+                    className="inbox-back-btn"
+                    onClick={deselectConv}
+                    aria-label="Back to conversations"
+                  >
+                    ← Back
+                  </button>
+                  <ChatPanel
+                    key={`${activeChat.contextType || 'product'}-${getContextId(activeChat)}-${activeChat.otherUser._id}`}
+                    productId={activeChat.contextType === 'request' ? undefined : activeChat.product._id}
+                    itemRequestId={activeChat.contextType === 'request' ? activeChat.itemRequest._id : undefined}
+                    otherUserId={activeChat.otherUser._id}
+                    otherUser={activeChat.otherUser}
+                    product={activeChat.contextType === 'request' ? undefined : activeChat.product}
+                    itemRequest={activeChat.contextType === 'request' ? activeChat.itemRequest : undefined}
+                    compact
+                    onMessageSent={() => fetchConvs(true)}
+                  />
+                </>
               ) : (
                 <div className="inbox-chat-placeholder">
                   <span>💬</span>

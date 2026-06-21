@@ -1860,6 +1860,65 @@ button { cursor: pointer; font-family: var(--font); }
 .admin-filter-count { background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: var(--radius-full); font-size: 0.7rem; }
 
 /* ============================================================
+   CHAT HEADER ACTION BUTTONS (Call / Email)
+   ============================================================ */
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.chat-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.chat-action-btn svg { width: 18px; height: 18px; }
+.chat-action-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  transform: scale(1.08);
+}
+[data-theme="light"] .chat-action-btn {
+  background: var(--bg-surface);
+}
+[data-theme="light"] .chat-action-btn:hover {
+  background: rgba(30,58,95,0.08);
+}
+
+/* Inbox back button — hidden on desktop, shown on mobile */
+.inbox-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  width: 100%;
+  text-align: left;
+  font-family: var(--font);
+}
+.inbox-back-btn:hover {
+  background: var(--bg-card);
+}
+
+/* ============================================================
    ANIMATIONS
    ============================================================ */
 @keyframes fadeInUp {
@@ -1879,29 +1938,215 @@ button { cursor: pointer; font-family: var(--font); }
 }
 
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE — Tablet (≤ 768px)
    ============================================================ */
 @media (max-width: 768px) {
+  /* Layout */
   .container { padding: 0 16px; }
+  .page-content { padding-top: 72px; padding-bottom: 32px; }
+
+  /* Typography */
+  .page-title { font-size: 1.5rem; margin-bottom: 4px; }
+  .page-subtitle { font-size: 0.875rem; margin-bottom: 20px; }
+
+  /* Navbar */
+  .navbar-links .nav-link { display: none; }
+  .navbar-links .nav-user-info { display: none; }
+  .navbar-links .theme-toggle { display: none; }
+  .nav-icon-label { display: none; }
+  .nav-icon-btn { padding: 8px; }
+  .mobile-menu-btn { display: flex; }
+
+  /* Glass card */
   .glass-card { padding: 20px; }
-  .auth-card { padding: 28px 20px; }
-  .filters-bar { flex-direction: column; }
+
+  /* Auth */
+  .auth-card { padding: 28px 20px; border-radius: var(--radius-lg); }
+  .auth-card-header h1 { font-size: 1.25rem; }
+  .auth-logo { width: 48px; height: 48px; margin-bottom: 12px; }
+
+  /* Hero */
+  .hero { padding: 24px 0 32px; }
+  .hero-subtitle { font-size: 0.95rem; margin-bottom: 24px; }
+
+  /* Filters */
+  .filters-bar { flex-direction: column; gap: 10px; margin-bottom: 20px; }
   .search-wrap { min-width: unset; width: 100%; }
   .filter-select { width: 100%; }
-  .navbar-links .nav-link { display: none; }
-  .nav-icon-label { display: none; }
-  .mobile-menu-btn { display: flex; }
-  .chat-layout { height: calc(100dvh - 72px); }
-  .inbox-item { padding: 12px; }
-  .inbox-split { grid-template-columns: 1fr; min-height: auto; }
-  .inbox-chat-pane { min-height: 420px; order: -1; }
-  .admin-data-row { flex-direction: column; align-items: flex-start; }
-  .detail-grid { grid-template-columns: 1fr; gap: 24px; }
+
+  /* Product grid */
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .card-body { padding: 10px; }
+  .card-title { font-size: 0.85rem; }
+  .card-price { font-size: 1rem; margin-bottom: 4px; }
+  .card-meta { font-size: 0.7rem; }
+  .card-seller { font-size: 0.72rem; }
+
+  /* Product detail */
+  .detail-grid { grid-template-columns: 1fr; gap: 20px; }
+  .detail-price { font-size: 1.75rem; }
+  .detail-title { font-size: 1.35rem; }
+  .detail-actions { flex-direction: column; }
+  .detail-actions .btn { width: 100%; justify-content: center; }
+
+  /* Sell form */
+  .image-uploader-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+
+  /* Dashboard */
+  .dash-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+  /* Inbox — Mobile: show list OR chat, not both */
+  .inbox-split {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    gap: 0;
+  }
+  .inbox-split .inbox-list {
+    display: flex;
+  }
+  .inbox-split.has-active-chat .inbox-list {
+    display: none;
+  }
+  .inbox-chat-pane {
+    min-height: calc(100dvh - 200px);
+    border-radius: 0;
+    border: none;
+  }
+  .inbox-split:not(.has-active-chat) .inbox-chat-pane {
+    display: none;
+  }
+  .inbox-back-btn {
+    display: flex;
+  }
+  .inbox-item { padding: 10px 12px; gap: 10px; }
+  .inbox-item-img { width: 44px; height: 44px; }
+  .inbox-item-title { font-size: 0.88rem; }
+  .inbox-item-preview { font-size: 0.78rem; }
+  .inbox-item-meta { font-size: 0.72rem; }
+  .inbox-header { margin-bottom: 16px; }
+
+  /* Chat panel */
+  .chat-panel { min-height: auto; }
+  .chat-panel-compact { min-height: auto; }
+  .chat-panel-header { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .chat-header-img { width: 40px; height: 40px; }
+  .chat-header-info h2 { font-size: 0.9rem; }
+  .chat-header-info p { font-size: 0.72rem; }
+  .chat-action-btn { width: 36px; height: 36px; }
+  .chat-action-btn svg { width: 16px; height: 16px; }
+  .chat-input-bar { padding: 10px 12px 14px; gap: 8px; }
+  .chat-input { padding: 10px 14px; font-size: 0.875rem; }
+  .chat-send-btn { width: 44px; height: 44px; }
+  .chat-layout { height: calc(100dvh - 72px); padding: 0 12px; }
+
+  /* Requests page */
+  .requests-list > div {
+    padding: 1rem !important;
+  }
+  .requests-list > div > div {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  .requests-list > div > div > div:last-child {
+    align-items: stretch !important;
+    width: 100%;
+  }
+
+  /* Reviews / Comments */
+  .social-section { margin-top: 32px; padding-top: 24px; }
+  .social-block-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Admin */
+  .admin-panel-grid { grid-template-columns: 1fr; }
+  .admin-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .admin-stat-card { padding: 16px 10px; }
+  .admin-stat-value { font-size: 1.35rem; }
+  .admin-data-row { flex-direction: column; align-items: flex-start; padding: 14px; }
+  .admin-data-main { min-width: unset; }
+  .admin-tabs { gap: 6px; }
+  .admin-tab { padding: 8px 14px; font-size: 0.8rem; }
+
+  /* Toast — centered on mobile */
+  .toast-container { left: 16px; right: 16px; bottom: 16px; }
+  .toast { max-width: 100%; }
+
+  /* Wishlist */
+  .wishlist-btn { width: 28px; height: 28px; font-size: 12px; }
+
+  /* Profile */
+  .form-row { grid-template-columns: 1fr; }
 }
 
+/* ============================================================
+   RESPONSIVE — Small phone (≤ 480px)
+   ============================================================ */
 @media (max-width: 480px) {
-  .hero-title { font-size: clamp(1.75rem, 8vw, 2.5rem); }
-  .product-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-  .hero-cta { flex-direction: column; align-items: center; }
+  /* Container */
+  .container { padding: 0 12px; }
+  .page-content { padding-top: 68px; padding-bottom: 24px; }
+
+  /* Navbar */
+  .navbar { height: 56px; }
+  .navbar-logo { font-size: 0.95rem; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; }
+
+  /* Hero */
+  .hero { padding: 16px 0 24px; }
+  .hero-title { font-size: clamp(1.5rem, 8vw, 2rem); }
+  .hero-subtitle { font-size: 0.85rem; margin-bottom: 20px; }
+  .hero-eyebrow { font-size: 0.68rem; padding: 5px 12px; }
+  .hero-cta { flex-direction: column; align-items: stretch; }
   .hero-cta .btn { width: 100%; justify-content: center; }
+
+  /* Product grid — single column */
+  .product-grid { grid-template-columns: 1fr; gap: 14px; }
+  .card-image-wrap { aspect-ratio: 16/9; }
+
+  /* Product detail */
+  .detail-price { font-size: 1.5rem; }
+  .detail-title { font-size: 1.15rem; }
+  .product-gallery-thumb { flex: 0 0 56px; width: 56px; height: 56px; }
+
+  /* Chat */
+  .chat-bubble { font-size: 0.82rem; padding: 8px 12px; }
+  .chat-bubble-wrap { max-width: 85%; }
+  .chat-bubble-meta { font-size: 0.65rem; }
+
+  /* Inbox */
+  .inbox-item-img { width: 40px; height: 40px; }
+  .inbox-item { padding: 10px; gap: 8px; border-radius: var(--radius-md); }
+  .inbox-unread-pill { min-width: 20px; height: 20px; font-size: 0.65rem; }
+
+  /* Auth */
+  .auth-card { padding: 24px 16px; }
+  .otp-input { font-size: 1.5rem; padding: 12px; }
+
+  /* Dashboard */
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-card-actions { flex-direction: column; }
+  .dash-card-actions .btn { width: 100%; justify-content: center; }
+
+  /* Admin */
+  .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-form-row { grid-template-columns: 1fr; }
+
+  /* Sell form */
+  .image-uploader-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ============================================================
+   TOUCH TARGETS — ensure min 44px on touch devices
+   ============================================================ */
+@media (pointer: coarse) {
+  .btn-sm { min-height: 44px; min-width: 44px; }
+  .nav-icon-btn { min-height: 44px; min-width: 44px; }
+  .mobile-menu-btn { min-height: 44px; min-width: 44px; }
+  .chat-send-btn { min-height: 44px; min-width: 44px; }
+  .chat-action-btn { min-height: 44px; min-width: 44px; width: 44px; height: 44px; }
+  .theme-toggle { min-height: 44px; min-width: 44px; }
+  .inbox-item { min-height: 64px; }
+  .mobile-nav-link { min-height: 48px; }
+  .admin-tab { min-height: 44px; }
+  .admin-filter-pill { min-height: 44px; }
+}
+

@@ -201,16 +201,6 @@ export default function Requests() {
                           >
                             {isContacting ? <span className="spinner" /> : wasContacted ? 'Opening inbox...' : 'I have this'}
                           </button>
-                          {req.requester?.phone && (
-                            <a href={`tel:${req.requester.phone.replace(/[^0-9+]/g, '')}`} className="btn btn-secondary btn-sm" style={{ textAlign: 'center' }}>
-                              📞 Call
-                            </a>
-                          )}
-                          {req.requester?.email && (
-                            <a href={`mailto:${req.requester.email}`} className="btn btn-secondary btn-sm" style={{ textAlign: 'center' }}>
-                              ✉️ Email
-                            </a>
-                          )}
                         </div>
                       )}
 

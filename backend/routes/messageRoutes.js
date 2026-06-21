@@ -7,7 +7,7 @@ const User = require('../models/User');
 const { sendNewMessageEmail } = require('../utils/resendEmail');
 const NotificationQueue = require('../models/NotificationQueue');
 
-const userFields = 'name role avatarUrl';
+const userFields = 'name role avatarUrl phone email';
 const productFields = 'title imageUrl imageUrls status price seller';
 const requestFields = 'title description category status requester';
 
@@ -65,6 +65,8 @@ router.get('/conversations', auth, async (req, res) => {
               name: otherUser.name,
               role: otherUser.role,
               avatarUrl: otherUser.avatarUrl || '',
+              phone: otherUser.phone || '',
+              email: otherUser.email || '',
             },
             lastMessage: msg,
             unread: 0,
@@ -95,6 +97,8 @@ router.get('/conversations', auth, async (req, res) => {
               name: otherUser.name,
               role: otherUser.role,
               avatarUrl: otherUser.avatarUrl || '',
+              phone: otherUser.phone || '',
+              email: otherUser.email || '',
             },
             lastMessage: msg,
             unread: 0,

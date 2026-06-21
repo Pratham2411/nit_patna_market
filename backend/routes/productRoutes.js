@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('seller', 'name email role avatarUrl');
+    const product = await Product.findById(req.params.id).populate('seller', 'name email role avatarUrl phone');
     if (!product) return res.status(404).json({ message: 'Product not found' });
     if (product.isSpam) return res.status(404).json({ message: 'Product not found' });
     respondProduct(res, product);
@@ -149,7 +149,7 @@ router.patch('/:id/status', auth, async (req, res) => {
 
     product.status = req.body.status === 'available' ? 'available' : 'sold';
     await product.save();
-    await product.populate('seller', 'name email role avatarUrl');
+    await product.populate('seller', 'name email role avatarUrl phone');
     respondProduct(res, product);
   } catch (err) {
     res.status(500).json({ message: err.message });
