@@ -135,7 +135,23 @@ export default function ChatPanel({
 
   const otherInitial = otherUser?.name?.charAt(0)?.toUpperCase() || '?';
   const isRequestChat = !!itemRequestId;
-  const emailUrl = otherUser?.email ? getGmailUrl(otherUser.email) : '';
+
+  let emailSubject = '';
+  let emailBody = '';
+  if (otherUser) {
+    if (product) {
+      emailSubject = `Inquiry about "${product.title}" - NIT Patna Marketplace`;
+      emailBody = `Hi ${otherUser.name},\n\nI am contacting you regarding your listing "${product.title}" (₹${product.price.toLocaleString('en-IN')}) on the NIT Patna Student Marketplace.`;
+    } else if (itemRequest) {
+      emailSubject = `Regarding request for "${itemRequest.title}" - NIT Patna Marketplace`;
+      emailBody = `Hi ${otherUser.name},\n\nI am contacting you regarding your request for "${itemRequest.title}" on the NIT Patna Student Marketplace.`;
+    } else {
+      emailSubject = `Message from NIT Patna Marketplace`;
+      emailBody = `Hi ${otherUser.name},\n\nI am contacting you from the NIT Patna Student Marketplace.`;
+    }
+  }
+
+  const emailUrl = otherUser?.email ? getGmailUrl(otherUser.email, emailSubject, emailBody) : '';
   const isMailto = emailUrl.startsWith('mailto:');
   let lastDate = '';
 
