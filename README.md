@@ -53,10 +53,16 @@ npm run dev            # http://localhost:3000
 ## Features
 
 - **Email OTP Verification** (Secure signup using Resend)
+- **Verified Student Badge** (Requires `@nitp.ac.in` domain)
 - JWT authentication (college email + admin allowlist)
 - Multi-photo listings (up to 8) with Cloudinary CDN
 - Search, category, and price filters
+- **Optimistic Wishlist** saves
+- **Item Requests** noticeboard
 - Buyer–seller chat (polling) + inbox
+- **WhatsApp Deep Linking** for instant seller contact
+- **Progressive Web App (PWA)** support for mobile installation
+- Automatic email notifications for offline chat recipients (Resend)
 - Product reviews and comments
 - Profile avatars
 - Admin dashboard (spam, bans, users, products)

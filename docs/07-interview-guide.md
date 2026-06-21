@@ -37,16 +37,19 @@
 | **Images** | Multer (memory) → **Cloudinary** when env set, else local `backend/uploads/` |
 | **Deploy** | Frontend: Vercel · Backend: Render (per `server.js` CORS + docs) |
 | **Real-time** | **No WebSockets** — HTTP polling for messages |
+| **Notifications** | Resend Email API |
+| **Mobile** | Progressive Web App (PWA) |
 
 ### Core user flows
 
-1. **Register / Login** → JWT stored in `localStorage` → `AuthContext`
-2. **Browse** → `GET /api/products` with search, category, price filters (debounced 350ms)
+1. **Register / Login** → `@nitp.ac.in` grants Verified Student badge. JWT stored in `localStorage` → `AuthContext`
+2. **Browse** → `GET /api/products` with search, category, min/max price filters (debounced 350ms)
 3. **Sell** → multi-image upload (up to 8) → `POST /api/products`
-4. **Product detail** → reviews, comments, chat with seller
-5. **Inbox** → `/messages` split view; draft chat from listing when no messages yet
-6. **Profile** → avatar (Cloudinary/local), phone, delete account
-7. **Admin** → dashboard: users, products, spam, bans, announcements, feedback
+4. **Product detail** → WhatsApp deep linking, save to Wishlist, chat with seller
+5. **Item Requests** → Users post items they want to buy on a noticeboard
+6. **Inbox** → `/messages` split view; draft chat from listing when no messages yet
+7. **Profile** → avatar (Cloudinary/local), phone, delete account
+8. **Admin** → dashboard: users, products, spam, bans, announcements, feedback
 
 ---
 
@@ -92,7 +95,7 @@ Students need a **trusted, campus-scoped** place to buy/sell used items (books, 
 
 ### Explain the project in 30 seconds
 
-> “NIT Patna Market is a MERN campus marketplace where students list and buy second-hand items. It has JWT login restricted to college emails, multi-photo listings with Cloudinary storage, search and filters, buyer–seller chat with polling, product reviews and comments, admin moderation, and a notification bell for campus announcements.”
+> “NIT Patna Market is a MERN campus marketplace where students list and buy second-hand items. It features a Verified Student badge system via college emails, a dedicated item requests board, and optimistic wishlist saves. It has buyer–seller chat, automatic email notifications via Resend, and it’s a fully installable PWA for mobile users.”
 
 ### Explain the project in 2 minutes
 
@@ -120,7 +123,7 @@ From `authRoutes.js`: emails ending with **`@nitp.ac.in`**, plus emails in `back
 ```mermaid
 flowchart TB
   subgraph Client
-    SPA[React SPA - Vite]
+    SPA[React SPA - Vite / PWA]
   end
   subgraph Server
     API[Express REST API]
@@ -135,6 +138,7 @@ flowchart TB
   API --> MONGO
   API -->|upload| CDN
   API --> Static
+  API -->|trigger| Resend[(Resend Email API)]
 ```
 
 ### Explain the data flow for creating a listing
@@ -538,7 +542,8 @@ sequenceDiagram
 | 8 | What is MongoDB? | Document NoSQL database. |
 | 9 | What is Mongoose? | ODM for schemas and validation. |
 | 10 | What is React? | Component-based UI library. |
-| 11 | What is Vite? | Dev server and bundler for frontend. |
+| 11 | What is a PWA? | Progressive Web App; installable on mobile. |
+| 12 | What is Vite? | Dev server and bundler for frontend. |
 | 12 | What is Axios? | HTTP client with interceptors. |
 | 13 | What is JWT? | Signed token for auth. |
 | 14 | Why hash passwords? | bcrypt in User pre-save. |
@@ -585,7 +590,7 @@ sequenceDiagram
 | 50 | Explain ProtectedRoute. | Redirect to login if no user. |
 | 51 | Explain AdminRoute. | Requires isAdmin. |
 | 52 | What is `isSpam` on products? | Admin moderation flag; hidden from browse. |
-| 53 | How are banned users handled? | 403 on auth if isBanned. |
+| 53 | How does WhatsApp link work? | Strips characters and opens `wa.me/phone`. |
 | 54 | Explain seller avatar upload. | PATCH `/auth/me` multipart → Cloudinary. |
 | 55 | How remove avatar? | `removeAvatar` in form body. |
 | 56 | What happens on account delete? | Cascade delete listings, messages, etc. |
@@ -618,7 +623,8 @@ sequenceDiagram
 | 78 | Migrate local images to Cloudinary? | Re-upload or migration script — manual today. |
 | 79 | Eventual consistency in chat? | Polling may show delayed messages. |
 | 80 | Optimistic UI for send? | ChatPanel appends on POST success. |
-| 81 | Database indexes used? | Some in models (e.g. AnnouncementRead); not all fields indexed. |
+| 81 | Optimistic UI for Wishlist? | React state toggles before network request. |
+| 82 | Database indexes used? | Some in models (e.g. AnnouncementRead); not all fields indexed. |
 | 82 | Transaction for delete account? | Multiple deletes — not single Mongo transaction in code. |
 | 83 | GDPR / data export? | Not implemented. |
 | 84 | Content moderation at scale? | ML classification — not implemented; manual admin. |

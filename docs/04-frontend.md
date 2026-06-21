@@ -39,7 +39,7 @@ const { id } = useParams(); // e.g. "6696abc123..."
 ## Global State: Context API
 
 ### Why not Redux?
-Redux adds significant boilerplate (actions, reducers, store, connect). For this app, we only have **one piece of global state**: the logged-in user. Context API handles this perfectly.
+Redux adds significant boilerplate (actions, reducers, store, connect). For this app, we only have **two pieces of global state**: the logged-in user (`AuthContext`) and the active theme mode (`ThemeContext`). Context API handles this perfectly.
 
 ### How AuthContext works
 
@@ -82,6 +82,9 @@ export const useAuth = () => useContext(AuthContext);
 // Any component
 const { user, isAuthenticated, logout } = useAuth();
 ```
+
+### How ThemeContext works
+The `ThemeProvider` checks the user's system preferences using `window.matchMedia` or falls back to `localStorage`. It manages a `theme` state ('light' or 'dark') and injects a `data-theme` attribute directly onto the `<html>` tag, allowing the CSS variables in `index.css` to cascade universally without utility classes.
 
 ---
 
@@ -187,7 +190,10 @@ const handleSend = async () => {
 
 The polling will confirm it's in MongoDB within 3 seconds anyway. This makes the UI feel instant.
 
-### 5. Image Fallback with `onError`
+### 5. Optimistic UI in Wishlist
+Similarly, when a user clicks the heart icon on a `ProductCard`, the heart fills in immediately via local React state (`isSaved`), without waiting for the `PATCH /api/auth/wishlist` network request to complete.
+
+### 6. Image Fallback with `onError`
 
 ```js
 <img
@@ -203,12 +209,15 @@ The polling will confirm it's in MongoDB within 3 seconds anyway. This makes the
 ```
 App
 ├── AuthProvider (wraps everything)
+├── ThemeProvider (wraps everything)
 ├── BrowserRouter
 │   ├── Navbar (always rendered)
 │   └── Routes
 │       ├── Home
 │       │   └── ProductCard (many)
 │       ├── ProductDetail
+│       ├── Wishlist
+│       ├── Requests
 │       ├── Login
 │       ├── Register
 │       └── ProtectedRoute (wraps)
@@ -218,6 +227,15 @@ App
 │           ├── Chat
 │           └── Conversations
 ```
+
+---
+
+## Progressive Web App (PWA)
+
+The frontend contains a `public/manifest.json` file. This tells the browser (especially mobile browsers like Chrome on Android or Safari on iOS) that the web app is installable.
+1. User gets a prompt: "Add to Home Screen".
+2. The app icon appears on their phone.
+3. When clicked, it launches in standalone mode (without the browser URL bar), feeling exactly like a native app.
 
 ---
 

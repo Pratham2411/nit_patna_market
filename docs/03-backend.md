@@ -87,6 +87,8 @@ const userSchema = new mongoose.Schema({
   email:    { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true, minlength: 6 },
   college:  { type: String, required: true },
+  isVerifiedStudent: { type: Boolean, default: false },
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
 }, { timestamps: true });
 
 // Pre-save hook: runs BEFORE every .save()
@@ -117,6 +119,19 @@ const productSchema = new mongoose.Schema({
 
 `seller: { ref: 'User' }` — this is a **reference** (like a foreign key). When you call `.populate('seller', 'name college')`, Mongoose fetches the User document and replaces the ObjectId with the actual user object.
 
+### ItemRequest Model
+
+```js
+const requestSchema = new mongoose.Schema({
+  requester:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  title:       { type: String, required: true },
+  description: { type: String, required: true },
+  category:    { type: String, required: true, enum: CATEGORIES },
+  status:      { type: String, enum: ['open', 'fulfilled'], default: 'open' },
+}, { timestamps: true });
+```
+This enables the campus Noticeboard feature where students can post items they want to buy.
+
 ---
 
 ## File Uploads: Multer
@@ -125,13 +140,13 @@ const productSchema = new mongoose.Schema({
 Multer is Express middleware for handling `multipart/form-data` — the format used when uploading files.
 
 ```js
+// If using memory storage for Cloudinary:
+const storage = multer.memoryStorage();
+
+// Or if using disk storage for local dev:
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads')); // Save to /uploads
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Unique filename
-  },
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 
 const upload = multer({
@@ -186,7 +201,17 @@ const products = await Product.find(query)
   .sort({ createdAt: -1 }); // Newest first
 ```
 
-`$regex` = MongoDB regex operator. `$gte` / `$lte` = comparison operators. `.populate()` replaces the `seller` ObjectId with the actual user's `name` and `college` fields.
+`$regex` = MongoDB regex operator. `$gte` / `$lte` = comparison operators. `.populate()` replaces the `seller` ObjectId with the actual user's `name` and `college` fields. We also dynamically sort using `.sort({ [sortBy]: direction })`.
+
+---
+
+## Third-Party API Integrations
+
+### Resend (Emails)
+`backend/utils/resendEmail.js` wraps the Resend API. When `messageRoutes.js` receives a new chat message, it calls `sendNewMessageEmail(receiverEmail, ...)`. This is an asynchronous side-effect, ensuring sellers are notified even when offline.
+
+### Cloudinary (Images)
+`backend/utils/imageStorage.js` takes the Multer memory buffer and streams it to Cloudinary via `cloudinary.uploader.upload_stream`. Cloudinary responds with a `secure_url` which is saved to the Product document.
 
 ---
 

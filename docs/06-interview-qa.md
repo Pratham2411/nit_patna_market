@@ -141,6 +141,12 @@ No ChatGPT, RAG, embeddings, vector databases, or tool calling. If asked about A
 
 ---
 
+**Q: How did you implement real-time feeling UI for the wishlist?**
+
+> "I used Optimistic UI updates. When a user clicks the heart icon to save an item, the local React state (`isSaved`) immediately toggles, filling in the heart before the Axios request is even sent. The `PATCH` request happens in the background. This makes the app feel extremely fast and responsive."
+
+---
+
 ## 💬 Chat System
 
 **Q: Why did you choose polling over WebSockets?**
@@ -161,6 +167,18 @@ No ChatGPT, RAG, embeddings, vector databases, or tool calling. If asked about A
 
 ---
 
+**Q: How do you notify offline users about messages?**
+
+> "I integrated the Resend API. When the `/api/messages` endpoint creates a new message, an asynchronous background job fires `sendNewMessageEmail()` which sends an HTML email to the receiver. This ensures sellers don't miss inquiries just because they closed the tab."
+
+---
+
+**Q: How did you implement WhatsApp integration?**
+
+> "The User model stores a phone number. On the frontend, clicking the WhatsApp button strips all non-numeric characters from the seller's phone string and executes a `window.open` to `https://wa.me/{phone}?text=Hi...`. This deep-links the user directly into the native WhatsApp app with a pre-filled message."
+
+---
+
 ## 🔒 Security & Edge Cases
 
 **Q: How do you prevent a user from editing or deleting another user's listing?**
@@ -177,7 +195,7 @@ No ChatGPT, RAG, embeddings, vector databases, or tool calling. If asked about A
 
 **Q: What would you add if you had more time?**
 
-> "Email verification to ensure students actually use a college email. Razorpay payment integration so the transaction can happen in-app. Push notifications when you receive a new message. A reporting system for flagging scam listings. And I'd move image storage to Cloudinary for production reliability."
+> "Razorpay payment integration so the transaction can happen in-app rather than via cash on campus. Push notifications (via Service Workers) when you receive a new message, so we wouldn't rely solely on email notifications. And a reporting system for flagging scam listings."
 
 ---
 

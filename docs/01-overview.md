@@ -36,14 +36,19 @@ From `backend/routes/authRoutes.js`:
 
 | Feature | Description |
 |---------|-------------|
-| 🔐 Auth | Register, login, JWT (7 days), bcrypt passwords |
+| 🔐 Auth | Register, login, JWT (7 days), bcrypt passwords. Verified badge (🎓) for `@nitp.ac.in` emails |
 | 📦 Listings | Create / edit / delete; up to **8 photos** per item |
-| 🔍 Browse | Debounced search, category + min/max price filters |
+| 🔍 Browse | Debounced search, category + min/max price filters, dynamic sorting |
 | 📸 Images | **Cloudinary** (production) or local `uploads/` (dev fallback) |
 | 🔴 Sold status | Toggle `available` / `sold` |
 | 💬 Chat | Buyer–seller messages per product; inbox at `/messages` |
 | ⭐ Reviews | 1–5 stars, one review per user per product |
 | 💬 Comments | Public comments on product pages |
+| ❤️ Wishlist | Save products with optimistic UI updates |
+| 📢 Requests | Dedicated noticeboard to request specific items to buy |
+| 📱 WhatsApp | Direct deep-link to seller's WhatsApp from product page |
+| 📧 Emails | Automated email notifications via Resend API when users receive new messages |
+| 📱 PWA | Progressive Web App installable on mobile devices via manifest.json |
 
 ### User account
 
@@ -114,7 +119,6 @@ From `backend/routes/authRoutes.js`:
 | **LLM / AI / RAG** | No OpenAI, embeddings, or vector DB |
 | **WebSockets** | Chat uses HTTP **polling** (10–15s) |
 | **Payments** | No Razorpay/Stripe |
-| **Email OTP (active)** | SMTP in `.env.example`; register sets verified without OTP flow |
 | **Redux / TypeScript** | Not used |
 | **Automated tests** | Not present in repo |
 

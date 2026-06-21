@@ -6,30 +6,30 @@
 
 ## System Architecture (current)
 
-```
-Browser (React SPA @ localhost:3000, Vercel in prod)
-        │
-        │  HTTP (Axios)  Authorization: Bearer JWT
-        │  Vite dev proxy → localhost:5000
-        ▼
-Express API (PORT 5000, Render in prod)
-        │
-        ├── /api/auth, /products, /messages, /comments, /reviews
-        ├── /api/admin, /announcements, /feedback
-        ├── /uploads  (static — only when Cloudinary NOT configured)
-        │
-        ├──► MongoDB Atlas (users, products, messages, comments, reviews,
-        │                   announcements, announcementreads, feedbacks)
-        └──► Cloudinary CDN (product + avatar images when env set)
+```mermaid
+graph TD
+    Client[React SPA - Vite] -->|HTTPS REST API| Express[Node.js / Express Server]
+    Express -->|Mongoose ORM| MongoDB[(MongoDB Atlas)]
+    Express -->|Upload Stream| Cloudinary[Cloudinary Image CDN]
+    Express -->|Trigger Email| Resend[Resend Email API]
+    
+    subgraph Frontend Client
+    UI[Components & Pages]
+    Context[Auth & Theme Context]
+    Axios[Axios HTTP Client]
+    UI --- Context
+    UI --- Axios
+    end
 ```
 
 ### MongoDB collections (current)
 
 | Collection | Model |
 |------------|--------|
-| users | User.js |
+| users | User.js (`wishlist[]`, `isVerifiedStudent`) |
 | products | Product.js (`imageUrls[]`, `imageUrl` cover) |
 | messages | Message.js |
+| itemrequests | ItemRequest.js |
 | comments | Comment.js |
 | reviews | Review.js |
 | announcements | Announcement.js |
@@ -118,15 +118,23 @@ college-marketplace/
 ## Key Data Flows
 
 ### 1. User Registration Flow
-```
-Register Form (Register.jsx)
-  → POST /api/auth/register  { name, email, password, college }
-  → Server: validate inputs → check duplicate email → bcrypt.hash(password)
-  → Save User to MongoDB
-  → Generate JWT: jwt.sign({ id, name, email, college }, JWT_SECRET, { expiresIn: '7d' })
-  → Response: { token, user }
-  → Frontend: AuthContext.login(token, user) → localStorage.setItem
-  → Redirect to Home
+```mermaid
+sequenceDiagram
+    participant User
+    participant React
+    participant Express
+    participant MongoDB
+
+    User->>React: Submit Register Form
+    React->>Express: POST /api/auth/register { email, pass }
+    Express->>Express: Check if email ends in @nitp.ac.in
+    Express->>Express: bcrypt.hash(password)
+    Express->>MongoDB: Save User (isVerifiedStudent: true)
+    MongoDB-->>Express: Returns saved User
+    Express->>Express: Generate JWT
+    Express-->>React: { token, user }
+    React->>React: AuthContext.login(token)
+    React-->>User: Redirect to Home
 ```
 
 ### 2. Protected API Request Flow
@@ -144,16 +152,22 @@ SellItem submits form
 ```
 
 ### 3. Image Upload Flow
-```
-User selects image in SellItem form
-  → Frontend: creates FormData, appends fields + image file
-  → POST /api/products with Content-Type: multipart/form-data (set automatically by Axios)
-  → Multer middleware on server:
-      - Validates file is image/* MIME type
-      - Saves to /uploads/<timestamp>-<filename>
-  → Product saved with imageUrl: "/uploads/<filename>"
-  → Frontend: /uploads proxied to backend by Vite in dev
-  → If no image: server uses https://picsum.photos/seed/<title>/600/400 as placeholder
+```mermaid
+sequenceDiagram
+    participant User
+    participant React
+    participant Express (Multer)
+    participant Cloudinary
+    participant MongoDB
+
+    User->>React: Selects image & clicks submit
+    React->>Express: POST /api/products (FormData)
+    Express->>Express (Multer): Parse multipart/form-data into Buffer
+    Express (Multer)->>Cloudinary: upload_stream(Buffer)
+    Cloudinary-->>Express: Returns { secure_url }
+    Express->>MongoDB: Save Product document with secure_url array
+    MongoDB-->>Express: Returns saved Product
+    Express-->>React: 201 Created (Product JSON)
 ```
 
 ### 4. Chat Polling Flow
@@ -219,6 +233,20 @@ User sends message
   "receiver": "ObjectId → users",
   "text": "Is this still available?",
   "read": false,
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+### itemrequests
+```json
+{
+  "_id": "ObjectId",
+  "requester": "ObjectId → users",
+  "title": "Engineering Graphics Kit",
+  "description": "Looking for a 1st year EG kit...",
+  "category": "Stationery",
+  "status": "open",
   "createdAt": "...",
   "updatedAt": "..."
 }
