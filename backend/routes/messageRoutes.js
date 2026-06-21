@@ -5,6 +5,7 @@ const ItemRequest = require('../models/ItemRequest');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 const { sendNewMessageEmail } = require('../utils/resendEmail');
+const NotificationQueue = require('../models/NotificationQueue');
 
 const userFields = 'name role avatarUrl';
 const productFields = 'title imageUrl imageUrls status price seller';
@@ -216,8 +217,12 @@ router.post('/', auth, async (req, res) => {
 
       const receiver = await User.findById(recvId).select('email name');
       if (receiver) {
-        sendNewMessageEmail(receiver.email, receiver.name, req.user.name || 'A user', product.title, buildProductUrl(productId))
-          .catch(err => console.error('Failed to send message notification:', err));
+        await NotificationQueue.create({
+          user: recvId,
+          category: 'inbox',
+          message: `New message from ${req.user.name || 'A user'} about ${product.title}`,
+          relatedUrl: buildProductUrl(productId)
+        });
       }
 
       return res.status(201).json(message);

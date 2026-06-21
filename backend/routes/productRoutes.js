@@ -73,6 +73,10 @@ router.post('/', auth, uploadImages, async (req, res) => {
   try {
     const { title, description, price, category } = req.body;
 
+    if (!req.user.phone) {
+      return res.status(400).json({ message: 'Please add a valid phone number in your profile before listing or requesting items.' });
+    }
+
     if (!title || !description || !price || !category)
       return res.status(400).json({ message: 'All fields are required' });
 

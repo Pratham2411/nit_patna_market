@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import ImageUploader, {
   buildExistingImageItem,
   buildPendingImageItem,
@@ -13,7 +14,15 @@ const CATEGORIES = ['Books', 'Electronics', 'Clothing', 'Furniture', 'Stationery
 export default function SellItem() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = !!id;
+
+  useEffect(() => {
+    if (user && !user.phone) {
+      alert('Please add a valid phone number in your profile before listing or requesting items.');
+      navigate('/profile');
+    }
+  }, [user, navigate]);
 
   const [form, setForm] = useState({
     title: '', description: '', price: '', category: 'Books',

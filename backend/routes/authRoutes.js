@@ -345,9 +345,9 @@ router.patch('/me', auth, uploadAvatar, async (req, res) => {
     const { phone, removeAvatar } = req.body;
 
     if (typeof phone === 'string') {
-      const cleaned = phone.trim();
-      if (cleaned && !/^[0-9+()\-\s]{6,20}$/.test(cleaned)) {
-        return res.status(400).json({ message: 'Invalid phone number format' });
+      const cleaned = phone.replace(/[\s-]/g, '');
+      if (cleaned && !/^(\+91)?[6-9]\d{9}$/.test(cleaned)) {
+        return res.status(400).json({ message: 'Please enter a valid Indian mobile number.' });
       }
       user.phone = cleaned;
     }

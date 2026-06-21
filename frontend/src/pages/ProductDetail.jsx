@@ -181,9 +181,19 @@ export default function ProductDetail() {
                       💬 Chat with Seller
                     </button>
                     {product.seller?.phone && (
-                      <button className="btn btn-secondary" onClick={handleWhatsApp} style={{ backgroundColor: '#25D366', color: 'white', borderColor: '#25D366' }}>
-                        📱 WhatsApp
-                      </button>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn btn-secondary" onClick={handleWhatsApp} style={{ flex: 1, backgroundColor: '#25D366', color: 'white', borderColor: '#25D366' }}>
+                          📱 WhatsApp
+                        </button>
+                        <a href={`tel:${product.seller.phone.replace(/[^0-9+]/g, '')}`} className="btn btn-secondary" style={{ flex: 1, textAlign: 'center' }}>
+                          📞 Call
+                        </a>
+                      </div>
+                    )}
+                    {product.seller?.email && (
+                      <a href={`mailto:${product.seller.email}`} className="btn btn-secondary" style={{ width: '100%', textAlign: 'center' }}>
+                        ✉️ Email
+                      </a>
                     )}
                   </div>
                 )

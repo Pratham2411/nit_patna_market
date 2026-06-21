@@ -69,6 +69,15 @@ export default function Profile() {
     setSuccess('');
     setSubmitting(true);
 
+    if (phone) {
+      const cleanedPhone = phone.replace(/[\s-]/g, '');
+      if (!/^(\+91)?[6-9]\d{9}$/.test(cleanedPhone)) {
+        setError('Please enter a valid Indian mobile number.');
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const payload = new FormData();
       payload.append('phone', phone);
@@ -227,14 +236,21 @@ export default function Profile() {
             <div className="glass-card profile-card">
               <form className="profile-form" onSubmit={handleSave}>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="profile-phone">Phone number</label>
+                  <label className="form-label" htmlFor="profile-phone">
+                    Phone number
+                    {authUser?.phone ? (
+                      <span style={{ color: 'var(--success-color)', fontSize: '0.8rem', marginLeft: '8px' }}>✅ Saved</span>
+                    ) : (
+                      <span style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginLeft: '8px' }}>⚠️ Required to list/request items</span>
+                    )}
+                  </label>
                   <input
                     id="profile-phone"
                     className="form-input"
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
+                    placeholder="e.g. 9876543210 or +919876543210"
                   />
                 </div>
 

@@ -5,6 +5,7 @@ const RequestContact = require('../models/RequestContact');
 const auth = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const { sendRequestOfferEmail } = require('../utils/resendEmail');
+const NotificationQueue = require('../models/NotificationQueue');
 
 const REQUEST_CATEGORIES = ['Books', 'Electronics', 'Clothing', 'Furniture', 'Stationery', 'Sports', 'Other'];
 const REQUEST_STATUSES = ['open', 'fulfilled'];
@@ -48,6 +49,10 @@ router.post('/', auth, async (req, res) => {
     const title = String(req.body.title || '').trim();
     const description = String(req.body.description || '').trim();
     const category = req.body.category || 'Other';
+
+    if (!req.user.phone) {
+      return res.status(400).json({ message: 'Please add a valid phone number in your profile before listing or requesting items.' });
+    }
 
     if (!title || !description) return res.status(400).json({ message: 'Title and description are required' });
     if (!REQUEST_CATEGORIES.includes(category)) {
@@ -128,13 +133,14 @@ router.post('/:id/contact', auth, async (req, res) => {
     contact.notifiedAt = new Date();
     await contact.save();
 
-    sendRequestOfferEmail(
-      request.requester.email,
-      request.requester.name,
-      req.user.name || 'A user',
-      request.title,
-      getConversationFullUrl(request._id, providerId)
-    ).catch(err => console.error('Failed to send request offer email:', err));
+    await NotificationQueue.create({
+      user: requesterId,
+      category: 'request',
+      message: `${req.user.name} can help with your request: ${request.title}`,
+      relatedUrl: getConversationUrl(request._id, providerId)
+    });
+
+
 
     await message.populate('sender', 'name role avatarUrl');
     res.status(201).json({ alreadyContacted: false, conversationUrl, requesterId, message });

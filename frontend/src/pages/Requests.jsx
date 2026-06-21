@@ -40,9 +40,25 @@ export default function Requests() {
     }
   };
 
+  const handleToggleForm = () => {
+    if (!showForm) {
+      if (user && !user.phone) {
+        alert('Please add a valid phone number in your profile before listing or requesting items.');
+        navigate('/profile');
+        return;
+      }
+    }
+    setShowForm(!showForm);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isAuthenticated) return alert('Please login first');
+    if (user && !user.phone) {
+      alert('Please add a valid phone number in your profile before listing or requesting items.');
+      navigate('/profile');
+      return;
+    }
     
     try {
       await api.post('/requests', {
@@ -107,7 +123,7 @@ export default function Requests() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 className="page-title" style={{ margin: 0 }}>Item Requests</h1>
           {isAuthenticated && (
-            <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            <button className="btn btn-primary" onClick={handleToggleForm}>
               {showForm ? 'Cancel' : '+ Request an Item'}
             </button>
           )}
@@ -176,14 +192,26 @@ export default function Requests() {
                       )}
                       
                       {isAuthenticated && req.status === 'open' && req.requester?._id && !isOwnRequest && (
-                        <button
-                          type="button"
-                          onClick={() => handleContact(req)}
-                          className="btn btn-secondary btn-sm"
-                          disabled={isContacting || wasContacted}
-                        >
-                          {isContacting ? <span className="spinner" /> : wasContacted ? 'Opening inbox...' : 'I have this'}
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '120px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleContact(req)}
+                            className="btn btn-secondary btn-sm"
+                            disabled={isContacting || wasContacted}
+                          >
+                            {isContacting ? <span className="spinner" /> : wasContacted ? 'Opening inbox...' : 'I have this'}
+                          </button>
+                          {req.requester?.phone && (
+                            <a href={`tel:${req.requester.phone.replace(/[^0-9+]/g, '')}`} className="btn btn-secondary btn-sm" style={{ textAlign: 'center' }}>
+                              📞 Call
+                            </a>
+                          )}
+                          {req.requester?.email && (
+                            <a href={`mailto:${req.requester.email}`} className="btn btn-secondary btn-sm" style={{ textAlign: 'center' }}>
+                              ✉️ Email
+                            </a>
+                          )}
+                        </div>
                       )}
 
                       {(isOwnRequest || isAdmin) && (
