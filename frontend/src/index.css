@@ -2378,4 +2378,81 @@ button { cursor: pointer; font-family: var(--font); }
   letter-spacing: 2px;
 }
 
+/* ============================================================
+   SELL ITEM LAYOUT (Responsive Desktop Sidebar)
+   ============================================================ */
+.sell-container {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.sell-form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sell-form-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sell-action-bar {
+  position: fixed;
+  bottom: 72px; /* above bottom nav */
+  left: 0;
+  right: 0;
+  padding: 16px 24px;
+  background: var(--navbar-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+}
+
+.sell-action-inner {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 640px;
+}
+
+.sell-action-inner button {
+  flex: 1;
+  border-radius: 16px;
+}
+
+@media (min-width: 768px) {
+  .sell-container {
+    max-width: 900px;
+  }
+  .sell-form-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .sell-form-main {
+    flex: 1;
+    max-width: 640px;
+  }
+  .sell-action-bar {
+    position: sticky;
+    top: 100px; /* Sticks to the top when scrolling */
+    bottom: auto;
+    left: auto;
+    right: auto;
+    width: 250px;
+    padding: 24px;
+    background: var(--bg-body);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .sell-action-inner {
+    flex-direction: column;
+  }
+}
+
 

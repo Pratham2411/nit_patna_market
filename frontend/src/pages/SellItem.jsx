@@ -137,15 +137,16 @@ export default function SellItem() {
 
   return (
     <main className="page-content" style={{ paddingBottom: '120px', background: 'var(--bg-base)' }}>
-      <div className="container" style={{ maxWidth: 640 }}>
+      <div className="container sell-container">
         
-        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+        <div style={{ marginBottom: '24px' }}>
           <h1 className="page-title" style={{ marginBottom: '8px' }}>{isEdit ? 'Edit Listing' : 'What are you selling?'}</h1>
           <p className="page-subtitle">Tap and type to list your item instantly.</p>
         </div>
 
-        <form id="sell-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <form id="sell-form" onSubmit={handleSubmit} className="sell-form-layout">
           
+          <div className="sell-form-main">
           {/* Card 1: Photos */}
           <div className="glass-card" style={{ padding: '24px' }}>
             <h3 style={{ marginBottom: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -259,28 +260,15 @@ export default function SellItem() {
           </div>
 
           {error && <p className="form-error" style={{ textAlign: 'center' }}>{error}</p>}
+          </div>
 
-          {/* Sticky Bottom Actions */}
-          <div style={{
-            position: 'fixed',
-            bottom: '72px', /* above bottom nav */
-            left: 0,
-            right: 0,
-            padding: '16px 24px',
-            background: 'var(--navbar-bg)',
-            backdropFilter: 'blur(10px)',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            gap: '12px',
-            zIndex: 100,
-            justifyContent: 'center'
-          }}>
-            <div style={{ display: 'flex', gap: '12px', width: '100%', maxWidth: '640px' }}>
+          {/* Sticky Sidebar Actions (Web) / Bottom Bar Actions (Mobile) */}
+          <div className="sell-action-bar">
+            <div className="sell-action-inner">
               <button
                 type="button"
                 className="btn btn-secondary btn-lg"
                 onClick={() => navigate(-1)}
-                style={{ flex: 1, borderRadius: '16px' }}
               >
                 Cancel
               </button>
@@ -289,7 +277,6 @@ export default function SellItem() {
                 type="submit"
                 className="btn btn-primary btn-lg"
                 disabled={loading}
-                style={{ flex: 2, borderRadius: '16px' }}
               >
                 {loading
                   ? <><span className="spinner" /> {isEdit ? 'Saving…' : 'Publishing…'}</>
