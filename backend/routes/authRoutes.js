@@ -12,8 +12,6 @@ const { sendOtpEmail } = require('../utils/resendEmail');
 
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
-const Review = require('../models/Review');
-const Message = require('../models/Message');
 const ItemRequest = require('../models/ItemRequest');
 const RequestContact = require('../models/RequestContact');
 
@@ -387,7 +385,6 @@ router.delete('/me', auth, async (req, res) => {
     await Promise.all([
       Product.deleteMany({ seller: userId }),
       Comment.deleteMany({ user: userId }),
-      Review.deleteMany({ user: userId }),
       Message.deleteMany({ $or: [{ sender: userId }, { receiver: userId }] }),
       ItemRequest.deleteMany({ requester: userId }),
       RequestContact.deleteMany({ $or: [{ requester: userId }, { provider: userId }] }),

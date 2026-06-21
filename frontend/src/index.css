@@ -1717,28 +1717,10 @@ button { cursor: pointer; font-family: var(--font); }
   justify-content: space-between; gap: 12px; margin-bottom: 20px;
 }
 .social-block h2 { font-size: 1.35rem; margin: 0; }
-.rating-summary { display: flex; align-items: center; gap: 10px; }
-.rating-summary-text { font-size: 0.9rem; color: var(--text-muted); }
-
-.star-rating { display: inline-flex; gap: 2px; }
-.star-btn {
-  background: none; border: none;
-  font-size: 1.35rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-  transition: all var(--transition-fast);
-}
-.star-rating-sm .star-btn { font-size: 1rem; }
-.star-btn.active, .star-btn:hover:not(:disabled) { color: #fbbf24; }
-.star-btn:disabled { cursor: default; }
-
-.review-form, .comment-form { margin-bottom: 20px; padding: 20px; }
-.review-form .star-rating { margin-bottom: 12px; }
-.comment-list, .review-list { display: flex; flex-direction: column; gap: 12px; }
-.comment-card, .review-card { padding: 16px; }
-.review-card-top, .comment-card-top {
+.comment-form { margin-bottom: 20px; padding: 20px; }
+.comment-list { display: flex; flex-direction: column; gap: 12px; }
+.comment-card { padding: 16px; }
+.comment-card-top {
   display: flex; justify-content: space-between;
   align-items: flex-start; gap: 8px; margin-bottom: 8px;
 }
@@ -1748,8 +1730,6 @@ button { cursor: pointer; font-family: var(--font); }
   align-items: center;
   gap: 8px 10px;
 }
-.social-author .star-rating { grid-column: 2; }
-.review-text { color: var(--text-secondary); margin: 0 0 10px; line-height: 1.5; }
 .social-time { font-size: 0.72rem; color: var(--text-muted); }
 .social-hint, .social-empty { font-size: 0.9rem; color: var(--text-muted); margin: 12px 0; }
 .social-hint a { color: var(--accent); font-weight: 600; }

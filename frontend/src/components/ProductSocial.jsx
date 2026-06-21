@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { getApiErrorMessage } from '../utils/apiError';
 import { mediaUrl } from '../utils/mediaUrl';
-import StarRating from './StarRating';
 import AdminBadge from './AdminBadge';
 
 const formatDate = (ts) =>
@@ -16,23 +15,15 @@ const formatDate = (ts) =>
 export default function ProductSocial({ productId }) {
   const { user, isAuthenticated } = useAuth();
   const [comments, setComments] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [summary, setSummary] = useState({ averageRating: 0, totalReviews: 0 });
   const [commentText, setCommentText] = useState('');
-  const [reviewForm, setReviewForm] = useState({ rating: 5, text: '' });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const [cRes, rRes] = await Promise.all([
-        api.get(`/comments/product/${productId}`),
-        api.get(`/reviews/product/${productId}`),
-      ]);
-      setComments(cRes.data);
-      setReviews(rRes.data.reviews);
-      setSummary(rRes.data.summary);
+      const { data } = await api.get(`/comments/product/${productId}`);
+      setComments(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -41,8 +32,6 @@ export default function ProductSocial({ productId }) {
   }, [productId]);
 
   useEffect(() => { load(); }, [load]);
-
-  const myReview = reviews.find((r) => String(r.user._id) === String(user?.id));
 
   const handleComment = async (e) => {
     e.preventDefault();
@@ -60,35 +49,10 @@ export default function ProductSocial({ productId }) {
     }
   };
 
-  const handleReview = async (e) => {
-    e.preventDefault();
-    setSubmitting('review');
-    setError('');
-    try {
-      const { data } = await api.post(`/reviews/product/${productId}`, reviewForm);
-      setReviews((prev) => [data, ...prev]);
-      setSummary((s) => ({
-        totalReviews: s.totalReviews + 1,
-        averageRating: Math.round(((s.averageRating * s.totalReviews + data.rating) / (s.totalReviews + 1)) * 10) / 10,
-      }));
-      setReviewForm({ rating: 5, text: '' });
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to submit review'));
-    } finally {
-      setSubmitting('');
-    }
-  };
-
   const deleteComment = async (id) => {
     if (!confirm('Delete this comment?')) return;
     await api.delete(`/comments/${id}`);
     setComments((prev) => prev.filter((c) => c._id !== id));
-  };
-
-  const deleteReview = async (id) => {
-    if (!confirm('Delete this review?')) return;
-    await api.delete(`/reviews/${id}`);
-    await load();
   };
 
   if (loading) {
@@ -97,78 +61,6 @@ export default function ProductSocial({ productId }) {
 
   return (
     <div className="social-section">
-      {/* Reviews */}
-      <section className="social-block">
-        <div className="social-block-header">
-          <h2>Reviews &amp; Ratings</h2>
-          <div className="rating-summary">
-            <StarRating value={Math.round(summary.averageRating)} readOnly />
-            <span className="rating-summary-text">
-              <strong>{summary.averageRating || '0'}</strong> · {summary.totalReviews} review{summary.totalReviews !== 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
-
-        {isAuthenticated && !myReview && (
-          <form className="review-form glass-card" onSubmit={handleReview}>
-            <p className="form-label">Your rating</p>
-            <StarRating value={reviewForm.rating} onChange={(rating) => setReviewForm((f) => ({ ...f, rating }))} />
-            <textarea
-              className="form-textarea"
-              placeholder="Share your experience with this listing (optional)"
-              value={reviewForm.text}
-              onChange={(e) => setReviewForm((f) => ({ ...f, text: e.target.value }))}
-              rows={3}
-            />
-            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting === 'review'}>
-              {submitting === 'review' ? <span className="spinner" /> : 'Submit Review'}
-            </button>
-          </form>
-        )}
-
-        {myReview && (
-          <p className="social-hint">You reviewed this listing. One review per user.</p>
-        )}
-
-        {!isAuthenticated && (
-          <p className="social-hint"><Link to="/login">Log in</Link> to leave a review.</p>
-        )}
-
-        <div className="review-list">
-          {reviews.length === 0 ? (
-            <p className="social-empty">No reviews yet. Be the first!</p>
-          ) : (
-            reviews.map((r) => (
-              <div key={r._id} className="review-card glass-card">
-                <div className="review-card-top">
-                  <div className="social-author">
-                    <span className="user-avatar user-avatar-sm" aria-hidden="true">
-                      {r.user.avatarUrl ? (
-                        <img src={mediaUrl(r.user.avatarUrl)} alt="" />
-                      ) : (
-                        <span>{r.user.name?.charAt(0)?.toUpperCase() || '?'}</span>
-                      )}
-                    </span>
-                    <div>
-                      <strong>{r.user.name}</strong>
-                      {r.user.role === 'admin' && <AdminBadge />}
-                    </div>
-                    <StarRating value={r.rating} readOnly size="sm" />
-                  </div>
-                  <span className="social-time">{formatDate(r.createdAt)}</span>
-                </div>
-                {r.text && <p className="review-text">{r.text}</p>}
-                {(String(r.user._id) === String(user?.id) || user?.isAdmin) && (
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteReview(r._id)}>
-                    Delete
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
       {/* Comments */}
       <section className="social-block">
         <h2>Comments ({comments.length})</h2>

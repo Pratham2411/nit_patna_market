@@ -2,7 +2,6 @@ const router = require('express').Router();
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
-const Review = require('../models/Review');
 const Message = require('../models/Message');
 const Announcement = require('../models/Announcement');
 const AnnouncementRead = require('../models/AnnouncementRead');
@@ -16,16 +15,15 @@ router.use(auth, admin);
 
 router.get('/stats', async (req, res) => {
   try {
-    const [users, products, comments, reviews, spam, banned, openFeedback] = await Promise.all([
+    const [users, products, comments, spam, banned, openFeedback] = await Promise.all([
       User.countDocuments(),
       Product.countDocuments(),
       Comment.countDocuments(),
-      Review.countDocuments(),
       Product.countDocuments({ isSpam: true }),
       User.countDocuments({ isBanned: true }),
       Feedback.countDocuments({ status: 'open' }),
     ]);
-    res.json({ users, products, comments, reviews, spam, banned, openFeedback });
+    res.json({ users, products, comments, spam, banned, openFeedback });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -59,7 +57,6 @@ router.delete('/products/:id', async (req, res) => {
     await product.deleteOne();
     await Promise.all([
       Comment.deleteMany({ product: product._id }),
-      Review.deleteMany({ product: product._id }),
       Message.deleteMany({ product: product._id }),
     ]);
     res.json({ message: 'Product and related data deleted' });
@@ -90,16 +87,6 @@ router.delete('/comments/:id', async (req, res) => {
   }
 });
 
-router.delete('/reviews/:id', async (req, res) => {
-  try {
-    const review = await Review.findByIdAndDelete(req.params.id);
-    if (!review) return res.status(404).json({ message: 'Review not found' });
-    res.json({ message: 'Review removed' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 router.patch('/users/:id/ban', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -125,7 +112,6 @@ router.delete('/users/:id', async (req, res) => {
     await Promise.all([
       Product.deleteMany({ seller: user._id }),
       Comment.deleteMany({ user: user._id }),
-      Review.deleteMany({ user: user._id }),
       Message.deleteMany({ $or: [{ sender: user._id }, { receiver: user._id }] }),
     ]);
     await user.deleteOne();
