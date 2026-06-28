@@ -67,12 +67,15 @@ export default function Navbar() {
             NIT Patna Market
           </Link>
 
+          {/* Notification bell — visible on both mobile and desktop */}
+          <div className="navbar-bell-mobile">
+            <NotificationBell />
+          </div>
+
           {/* Desktop links */}
           <div className="navbar-links">
             <Link to="/" className="nav-link">Browse</Link>
             <Link to="/requests" className="nav-link">Requests</Link>
-
-            <NotificationBell />
 
             {/* Theme toggle */}
             <button

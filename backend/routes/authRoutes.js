@@ -8,7 +8,7 @@ const { isAdminEmail } = require('../config/admins');
 
 const crypto = require('crypto');
 const PendingUser = require('../models/PendingUser');
-const { sendOtpEmail } = require('../utils/resendEmail');
+const { sendOtpEmail, sendPasswordResetEmail } = require('../utils/resendEmail');
 
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
@@ -293,6 +293,98 @@ router.post('/register', async (req, res) => {
 
     console.error('Register error:', err);
     res.status(err.statusCode || 500).json({ message: err.message });
+  }
+});
+
+// ─── POST /api/auth/forgot-password ──────────────────────────────────────────
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const emailLower = email.toLowerCase().trim();
+    const user = await User.findOne({ email: emailLower });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.status(200).json({ message: 'If an account with that email exists, a reset code has been sent.' });
+    }
+
+    if (user.isBanned) {
+      return res.status(200).json({ message: 'If an account with that email exists, a reset code has been sent.' });
+    }
+
+    // Rate limit: max 1 OTP per 60 seconds
+    if (user.resetPasswordOtpExpires && user.resetPasswordOtpHash) {
+      const timeSinceIssued = Date.now() - (user.resetPasswordOtpExpires.getTime() - 10 * 60 * 1000);
+      if (timeSinceIssued < 60 * 1000) {
+        return res.status(429).json({ message: `Please wait before requesting another code.` });
+      }
+    }
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    user.resetPasswordOtpHash = otpHash;
+    user.resetPasswordOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    const emailResult = await sendPasswordResetEmail(emailLower, otp, user.name);
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
+    }
+
+    res.status(200).json({ message: 'If an account with that email exists, a reset code has been sent.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ─── POST /api/auth/reset-password ───────────────────────────────────────────
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+    }
+
+    const passwordCheck = isStrongPassword(newPassword);
+    if (!passwordCheck.ok) {
+      return res.status(400).json({ message: passwordCheck.message });
+    }
+
+    const emailLower = email.toLowerCase().trim();
+    const user = await User.findOne({ email: emailLower });
+
+    if (!user || !user.resetPasswordOtpHash || !user.resetPasswordOtpExpires) {
+      return res.status(400).json({ message: 'Invalid or expired reset code. Please request a new one.' });
+    }
+
+    if (new Date() > user.resetPasswordOtpExpires) {
+      user.resetPasswordOtpHash = '';
+      user.resetPasswordOtpExpires = null;
+      await user.save();
+      return res.status(400).json({ message: 'Reset code has expired. Please request a new one.' });
+    }
+
+    const otpHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
+    if (user.resetPasswordOtpHash !== otpHash) {
+      return res.status(400).json({ message: 'Invalid reset code.' });
+    }
+
+    // OTP is valid — update password and clear reset fields
+    user.password = newPassword; // Will be hashed by the pre-save hook
+    user.resetPasswordOtpHash = '';
+    user.resetPasswordOtpExpires = null;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully. You can now log in with your new password.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 });
 

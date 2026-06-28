@@ -206,4 +206,55 @@ const sendDigestEmail = async (toEmail, recipientName, notifications) => {
   }
 };
 
-module.exports = { sendOtpEmail, sendNewMessageEmail, sendRequestOfferEmail, sendDigestEmail };
+const sendPasswordResetEmail = async (toEmail, otp, name) => {
+  const { isDummyKey, fromEmail } = getEmailClientState();
+
+  if (!resend || isDummyKey) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('\n=========================================');
+      console.log(`LOCAL DEV PASSWORD RESET OTP for ${toEmail}: ${otp}`);
+      console.log('=========================================\n');
+      return { success: true };
+    }
+    console.error('RESEND_API_KEY is missing or invalid. Email not sent.');
+    return { success: false, error: 'Email service is not configured' };
+  }
+
+  const safeName = escapeHtml(name);
+
+  try {
+    const { error } = await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: 'Reset your Campus Market Password',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+          <h2 style="color: #7c3aed; text-align: center;">Password Reset</h2>
+          <p>Hi ${safeName},</p>
+          <p>We received a request to reset your Campus Market password. Use the code below to set a new password:</p>
+          
+          <div style="background-color: #f4f4f5; padding: 20px; text-align: center; border-radius: 8px; margin: 24px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b;">${otp}</span>
+          </div>
+          
+          <p>This code will expire in <strong>10 minutes</strong>. Do not share this code with anyone.</p>
+          <p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #64748b; text-align: center;">Campus Market Team</p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Failed to send password reset email:', err);
+    return { success: false, error: 'Failed to send email' };
+  }
+};
+
+module.exports = { sendOtpEmail, sendNewMessageEmail, sendRequestOfferEmail, sendDigestEmail, sendPasswordResetEmail };

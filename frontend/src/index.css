@@ -436,6 +436,11 @@ button { cursor: pointer; font-family: var(--font); }
   height: 100%;
 }
 
+.navbar-bell-mobile {
+  display: flex;
+  align-items: center;
+}
+
 .navbar-links {
   display: flex;
   align-items: center;
@@ -2161,6 +2166,9 @@ button { cursor: pointer; font-family: var(--font); }
   /* Hide the top navigation hamburger & links completely on mobile */
   .mobile-menu-btn { display: none !important; }
   .navbar-links { display: none !important; }
+
+  /* Push notification bell to the right edge on mobile */
+  .navbar-bell-mobile { margin-left: auto; }
   
   /* Ensure page content isn't hidden behind the bottom nav */
   .page-content { padding-bottom: calc(72px + env(safe-area-inset-bottom) + 32px) !important; }

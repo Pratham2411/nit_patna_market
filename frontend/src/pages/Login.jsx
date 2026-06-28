@@ -70,6 +70,11 @@ export default function Login() {
               onChange={handleChange}
               required
             />
+            <div style={{ textAlign: 'right', marginTop: '6px' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           {error && <p className="form-error">{error}</p>}

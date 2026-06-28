@@ -24,7 +24,11 @@ const userSchema = new mongoose.Schema(
     avatarUrl: { type: String, default: '' },
     isVerifiedStudent: { type: Boolean, default: false },
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-    lastEmailedAt: { type: Date, default: null }
+    lastEmailedAt: { type: Date, default: null },
+
+    // Password reset OTP
+    resetPasswordOtpHash: { type: String, default: '' },
+    resetPasswordOtpExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

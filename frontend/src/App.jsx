@@ -7,6 +7,7 @@ import SplashScreen from './components/SplashScreen';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import Register from './pages/Register';
 import ProductDetail from './pages/ProductDetail';
 import SellItem from './pages/SellItem';
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/sell" element={<ProtectedRoute><SellItem /></ProtectedRoute>} />
           <Route path="/sell/:id" element={<ProtectedRoute><SellItem /></ProtectedRoute>} />
