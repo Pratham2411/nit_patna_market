@@ -67,8 +67,13 @@ export default function Navbar() {
             NIT Patna Market
           </Link>
 
-          {/* Notification bell — visible on both mobile and desktop */}
-          <div className="navbar-bell-mobile">
+          {/* Notification bell and Wishlist — visible on both mobile and desktop */}
+          <div className="navbar-actions-mobile">
+            {user && (
+              <Link to="/wishlist" className="nav-icon-btn" title="Wishlist">
+                <span className="nav-icon-label" style={{ fontSize: '18px' }}>🤍</span>
+              </Link>
+            )}
             <NotificationBell />
           </div>
 
@@ -103,9 +108,6 @@ export default function Navbar() {
                 </Link>
 
                 <Link to="/dashboard" className="nav-link">My Listings</Link>
-                <Link to="/wishlist" className="nav-icon-btn" title="Wishlist">
-                  <span className="nav-icon-label" style={{ fontSize: '18px' }}>🤍</span>
-                </Link>
 
                 <Link to="/messages" className="nav-icon-btn" title="Messages">
                   <svg className="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

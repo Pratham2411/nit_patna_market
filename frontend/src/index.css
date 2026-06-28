@@ -436,9 +436,10 @@ button { cursor: pointer; font-family: var(--font); }
   height: 100%;
 }
 
-.navbar-bell-mobile {
+.navbar-actions-mobile {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .navbar-links {
@@ -2167,8 +2168,8 @@ button { cursor: pointer; font-family: var(--font); }
   .mobile-menu-btn { display: none !important; }
   .navbar-links { display: none !important; }
 
-  /* Push notification bell to the right edge on mobile */
-  .navbar-bell-mobile { margin-left: auto; }
+  /* Push notification bell and wishlist to the right edge on mobile */
+  .navbar-actions-mobile { margin-left: auto; }
   
   /* Ensure page content isn't hidden behind the bottom nav */
   .page-content { padding-bottom: calc(72px + env(safe-area-inset-bottom) + 32px) !important; }
