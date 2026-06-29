@@ -60,6 +60,10 @@ export default function AdminAnnouncementsPanel({
         const { data } = await api.post('/admin/announcements', payload);
         if (data.emailStats) {
           onToast(`Sent to ${data.emailStats.success} users. ${data.emailStats.failed} failed.`);
+          if (data.emailStats.failed > 0 && data.emailStats.failures) {
+            const failureMsg = data.emailStats.failures.map(f => `${f.email}: ${f.reason}`).join('\n');
+            alert(`The following emails were rejected by Resend:\n\n${failureMsg}`);
+          }
         } else {
           onToast('Announcement published');
         }
