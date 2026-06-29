@@ -7,6 +7,29 @@ import ProductImageGallery from '../components/ProductImageGallery';
 import ProductSocial from '../components/ProductSocial';
 import AdminBadge from '../components/AdminBadge';
 
+const renderDescriptionWithLinks = (text) => {
+  if (!text) return null;
+  // Match http, https, or www.
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  return text.split(urlRegex).map((part, i) => {
+    if (part.match(urlRegex)) {
+      const href = part.startsWith('http') ? part : `https://${part}`;
+      return (
+        <a 
+          key={i} 
+          href={href} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={{ color: 'var(--accent)', textDecoration: 'underline' }}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -144,7 +167,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            <p className="detail-description">{product.description}</p>
+            <p className="detail-description">{renderDescriptionWithLinks(product.description)}</p>
 
             <div className="detail-meta-row">
               <div className="detail-seller-card">

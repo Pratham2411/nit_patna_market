@@ -1255,6 +1255,9 @@ button { cursor: pointer; font-family: var(--font); }
   color: var(--text-secondary);
   font-size: 0.95rem;
   line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .detail-meta-row {
