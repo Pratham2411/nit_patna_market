@@ -632,15 +632,15 @@ Dual-mode image storage with automatic fallback:
 
 ```mermaid
 flowchart TD
-  UPLOAD[Upload Request] --> CHECK{Cloudinary<br>env vars set?}
-  CHECK -->|Yes| CLOUD[Upload to Cloudinary<br>via upload_stream]
-  CHECK -->|No| LOCAL[Save to local<br>/uploads/ directory]
-  CLOUD --> URL1[https://res.cloudinary.com/...]
-  LOCAL --> URL2[/uploads/timestamp-random-name.jpg]
+  UPLOAD[Upload Request] --> CHECK{"Cloudinary<br>env vars set?"}
+  CHECK -->|Yes| CLOUD["Upload to Cloudinary<br>via upload_stream"]
+  CHECK -->|No| LOCAL["Save to local<br>/uploads/ directory"]
+  CLOUD --> URL1["https://res.cloudinary.com/..."]
+  LOCAL --> URL2["/uploads/timestamp-random-name.jpg"]
   
-  DELETE[Delete Request] --> TYPE{URL type?}
-  TYPE -->|Cloudinary| DESTROY[cloudinary.uploader.destroy]
-  TYPE -->|Local| UNLINK[fs.unlinkSync]
+  DELETE[Delete Request] --> TYPE{"URL type?"}
+  TYPE -->|Cloudinary| DESTROY["cloudinary.uploader.destroy"]
+  TYPE -->|Local| UNLINK["fs.unlinkSync"]
   TYPE -->|Other| SKIP[Ignore]
 ```
 
@@ -895,7 +895,7 @@ sequenceDiagram
   
   User->>UI: Click heart icon
   UI->>Context: updateUser({ ...user, wishlist: [..., productId] })
-  Note over UI: Heart immediately fills ❤️
+  Note over UI: Heart immediately fills (red)
   UI->>API: POST /api/auth/wishlist/:productId
   API->>DB: user.wishlist.push(productId)
   DB-->>API: { wishlist }
@@ -927,19 +927,19 @@ The image system uses a **Strategy Pattern** with automatic fallback:
 
 ```mermaid
 flowchart TD
-  START[Image Upload] --> ENV{CLOUDINARY_*<br>env vars set?}
-  ENV -->|All 3 present| INIT[initCloudinary<br>Lazy, one-time]
-  INIT --> STREAM[upload_stream<br>Buffer → Cloudinary]
-  STREAM --> CDN_URL[https://res.cloudinary.com/...]
+  START[Image Upload] --> ENV{"CLOUDINARY_*<br>env vars set?"}
+  ENV -->|All 3 present| INIT["initCloudinary<br>Lazy, one-time"]
+  INIT --> STREAM["upload_stream<br>Buffer → Cloudinary"]
+  STREAM --> CDN_URL["https://res.cloudinary.com/..."]
   
-  ENV -->|Missing any| LOCAL[saveToLocalDisk<br>Buffer → /uploads/]
-  LOCAL --> DISK_URL[/uploads/timestamp-random-name.ext]
+  ENV -->|Missing any| LOCAL["saveToLocalDisk<br>Buffer → /uploads/"]
+  LOCAL --> DISK_URL["/uploads/timestamp-random-name.ext"]
   
-  DELETE[Delete Image] --> DETECT{URL contains<br>res.cloudinary.com?}
-  DETECT -->|Yes| EXTRACT[Extract public_id<br>from URL path]
-  EXTRACT --> DESTROY[cloudinary.uploader.destroy]
-  DETECT -->|No| CHECK{Starts with<br>/uploads/?}
-  CHECK -->|Yes| FS_DELETE[fs.unlinkSync]
+  DELETE[Delete Image] --> DETECT{"URL contains<br>res.cloudinary.com?"}
+  DETECT -->|Yes| EXTRACT["Extract public_id<br>from URL path"]
+  EXTRACT --> DESTROY["cloudinary.uploader.destroy"]
+  DETECT -->|No| CHECK{"Starts with<br>/uploads/?"}
+  CHECK -->|Yes| FS_DELETE["fs.unlinkSync"]
   CHECK -->|No| NOOP[Skip]
 ```
 

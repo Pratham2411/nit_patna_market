@@ -92,7 +92,7 @@ sequenceDiagram
   
   User->>UI: Click heart icon
   UI->>Context: updateUser({ ...user, wishlist: [..., productId] })
-  Note over UI: Heart immediately fills ❤️
+  Note over UI: Heart immediately fills (red)
   UI->>API: POST /api/auth/wishlist/:productId
   API->>DB: user.wishlist.push(productId)
   DB-->>API: { wishlist }
