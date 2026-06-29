@@ -297,9 +297,13 @@ const sendAnnouncementEmail = async (toEmail, recipientName, announcementTitle, 
       `,
     });
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+      console.error('Resend API error (Announcement):', error);
+      return { success: false, error: error.message };
+    }
     return { success: true };
   } catch (err) {
+    console.error('Failed to send announcement email:', err);
     return { success: false, error: 'Failed to send email' };
   }
 };

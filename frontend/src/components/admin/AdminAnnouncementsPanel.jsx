@@ -10,7 +10,7 @@ const EMPTY_FORM = {
   message: '',
   priority: 'normal',
   expiresAt: '',
-  sendEmail: false,
+  type: 'banner',
 };
 
 export default function AdminAnnouncementsPanel({
@@ -36,7 +36,7 @@ export default function AdminAnnouncementsPanel({
       expiresAt: a.expiresAt
         ? new Date(a.expiresAt).toISOString().slice(0, 16)
         : '',
-      sendEmail: a.sendEmail || false,
+      type: a.type || 'banner',
     });
   };
 
@@ -49,7 +49,7 @@ export default function AdminAnnouncementsPanel({
         message: form.message.trim(),
         priority: form.priority,
         active: true,
-        sendEmail: form.sendEmail,
+        type: form.type,
       };
       if (form.expiresAt) payload.expiresAt = new Date(form.expiresAt).toISOString();
 
@@ -153,17 +153,30 @@ export default function AdminAnnouncementsPanel({
               </div>
             </div>
             
-            <div className="form-group form-group-inline" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input
-                id="admin-ann-email"
-                type="checkbox"
-                checked={form.sendEmail}
-                onChange={(e) => setForm((f) => ({ ...f, sendEmail: e.target.checked }))}
-                style={{ width: '16px', height: '16px' }}
-              />
-              <label className="form-label" htmlFor="admin-ann-email" style={{ margin: 0, cursor: 'pointer' }}>
-                Broadcast as email to all active users
-              </label>
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label className="form-label">Announcement Type</label>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="admin-ann-type"
+                    value="banner"
+                    checked={form.type === 'banner'}
+                    onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                  />
+                  Website Notification Bar
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="admin-ann-type"
+                    value="email"
+                    checked={form.type === 'email'}
+                    onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                  />
+                  Email Broadcast
+                </label>
+              </div>
             </div>
             
             <div className="admin-form-actions">
@@ -193,7 +206,11 @@ export default function AdminAnnouncementsPanel({
                   <div className="admin-data-main">
                     <div className="admin-data-title-row">
                       <strong>{a.title || 'Untitled'}</strong>
-                      <PriorityBadge priority={a.priority} />
+                      {a.type === 'email' ? (
+                        <span className="badge" style={{ background: '#7c3aed', color: 'white' }}>Email</span>
+                      ) : (
+                        <PriorityBadge priority={a.priority} />
+                      )}
                       <span className={`admin-status-pill ${a.active ? 'active' : 'inactive'}`}>
                         {a.active ? 'Live' : 'Hidden'}
                       </span>
