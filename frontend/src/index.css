@@ -1308,6 +1308,12 @@ button { cursor: pointer; font-family: var(--font); }
   position: sticky;
   top: 96px; /* Offset for navbar (approx 72px) + some spacing */
 }
+@media (max-width: 768px) {
+  .product-gallery {
+    position: relative;
+    top: auto;
+  }
+}
 .product-gallery-main { position: relative; }
 .product-gallery-counter {
   position: absolute;
