@@ -1223,6 +1223,9 @@ button { cursor: pointer; font-family: var(--font); }
   gap: 48px;
   align-items: start;
 }
+.detail-grid > * {
+  min-width: 0;
+}
 @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; gap: 24px; } }
 
 .detail-image-wrap {
@@ -1268,23 +1271,6 @@ button { cursor: pointer; font-family: var(--font); }
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  max-height: 350px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.detail-description::-webkit-scrollbar {
-  width: 6px;
-}
-.detail-description::-webkit-scrollbar-track {
-  background: transparent;
-}
-.detail-description::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: var(--radius-full);
-}
-.detail-description::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
 }
 
 .detail-meta-row {
@@ -1315,7 +1301,13 @@ button { cursor: pointer; font-family: var(--font); }
 .detail-actions { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 8px; }
 
 /* Gallery */
-.product-gallery { display: flex; flex-direction: column; gap: 12px; }
+.product-gallery { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  position: sticky;
+  top: 96px; /* Offset for navbar (approx 72px) + some spacing */
+}
 .product-gallery-main { position: relative; }
 .product-gallery-counter {
   position: absolute;
