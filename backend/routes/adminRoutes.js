@@ -169,8 +169,8 @@ router.post('/announcements', async (req, res) => {
           failCount++;
           console.error(`Failed to send to ${u.email}:`, result.error);
         }
-        // Small delay to respect rate limits (10/sec max)
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Increased delay to 300ms to safely stay under Resend's 10/sec limit
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
       
       return res.status(201).json({
