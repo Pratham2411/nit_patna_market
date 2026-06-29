@@ -1268,6 +1268,23 @@ button { cursor: pointer; font-family: var(--font); }
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.detail-description::-webkit-scrollbar {
+  width: 6px;
+}
+.detail-description::-webkit-scrollbar-track {
+  background: transparent;
+}
+.detail-description::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+.detail-description::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 .detail-meta-row {

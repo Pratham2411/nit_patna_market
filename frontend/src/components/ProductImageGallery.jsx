@@ -18,12 +18,14 @@ export default function ProductImageGallery({ product, alt }) {
   if (sources.length <= 1) {
     return (
       <>
-        <div className="detail-image-wrap" onClick={openLightbox} style={{ cursor: 'zoom-in' }}>
-          <img
-            src={sources[0]}
-            alt={alt}
-            onError={handleProductImageError}
-          />
+        <div className="product-gallery">
+          <div className="detail-image-wrap product-gallery-main" onClick={openLightbox} style={{ cursor: 'zoom-in' }}>
+            <img
+              src={sources[0]}
+              alt={alt}
+              onError={handleProductImageError}
+            />
+          </div>
         </div>
         {isLightboxOpen && (
           <ImageLightbox 
