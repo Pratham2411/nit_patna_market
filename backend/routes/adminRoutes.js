@@ -158,6 +158,7 @@ router.post('/announcements', async (req, res) => {
       
       let successCount = 0;
       let failCount = 0;
+      let failures = [];
       
       // Process sequentially to avoid rate limits on free tiers
       for (const u of activeUsers) {
@@ -167,6 +168,7 @@ router.post('/announcements', async (req, res) => {
           successCount++;
         } else {
           failCount++;
+          failures.push({ email: u.email, reason: result.error });
           console.error(`Failed to send to ${u.email}:`, result.error);
         }
         // Increased delay to 300ms to safely stay under Resend's 10/sec limit
@@ -175,7 +177,7 @@ router.post('/announcements', async (req, res) => {
       
       return res.status(201).json({
         ...announcement.toObject(),
-        emailStats: { success: successCount, failed: failCount, total: activeUsers.length }
+        emailStats: { success: successCount, failed: failCount, total: activeUsers.length, failures }
       });
     }
 
