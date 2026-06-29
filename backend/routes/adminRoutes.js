@@ -136,7 +136,7 @@ router.get('/announcements', async (req, res) => {
 
 router.post('/announcements', async (req, res) => {
   try {
-    const { title, message, priority, active, expiresAt } = req.body;
+    const { title, message, priority, active, expiresAt, sendEmail } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: 'Title is required' });
     if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
 
@@ -145,9 +145,19 @@ router.post('/announcements', async (req, res) => {
       message: message.trim(),
       priority: priority || 'normal',
       active: active !== false,
+      sendEmail: sendEmail === true,
       createdBy: req.user.id,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
+    
+    if (sendEmail) {
+      const { sendAnnouncementEmail } = require('../utils/resendEmail');
+      const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
+      Promise.allSettled(activeUsers.map(u => 
+        sendAnnouncementEmail(u.email, u.name, announcement.title, announcement.message)
+      )).catch(console.error);
+    }
+
     await announcement.populate('createdBy', 'name email');
     res.status(201).json(announcement);
   } catch (err) {

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const notificationQueueSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  category: { type: String, enum: ['inbox', 'item', 'request'], required: true },
+  category: { type: String, enum: ['inbox', 'item', 'request', 'product_update', 'comment_reply', 'announcement'], required: true },
   message: { type: String, required: true },
   relatedUrl: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }

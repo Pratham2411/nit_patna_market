@@ -10,6 +10,7 @@ const announcementSchema = new mongoose.Schema(
       default: 'normal',
     },
     active: { type: Boolean, default: true },
+    sendEmail: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     expiresAt: { type: Date, default: null },
   },

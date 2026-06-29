@@ -10,6 +10,7 @@ const EMPTY_FORM = {
   message: '',
   priority: 'normal',
   expiresAt: '',
+  sendEmail: false,
 };
 
 export default function AdminAnnouncementsPanel({
@@ -35,6 +36,7 @@ export default function AdminAnnouncementsPanel({
       expiresAt: a.expiresAt
         ? new Date(a.expiresAt).toISOString().slice(0, 16)
         : '',
+      sendEmail: a.sendEmail || false,
     });
   };
 
@@ -47,6 +49,7 @@ export default function AdminAnnouncementsPanel({
         message: form.message.trim(),
         priority: form.priority,
         active: true,
+        sendEmail: form.sendEmail,
       };
       if (form.expiresAt) payload.expiresAt = new Date(form.expiresAt).toISOString();
 
@@ -149,6 +152,20 @@ export default function AdminAnnouncementsPanel({
                 />
               </div>
             </div>
+            
+            <div className="form-group form-group-inline" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                id="admin-ann-email"
+                type="checkbox"
+                checked={form.sendEmail}
+                onChange={(e) => setForm((f) => ({ ...f, sendEmail: e.target.checked }))}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <label className="form-label" htmlFor="admin-ann-email" style={{ margin: 0, cursor: 'pointer' }}>
+                Broadcast as email to all active users
+              </label>
+            </div>
+            
             <div className="admin-form-actions">
               {editingId && (
                 <button type="button" className="btn btn-secondary" onClick={resetForm}>
