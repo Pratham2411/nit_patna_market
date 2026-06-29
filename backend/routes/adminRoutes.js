@@ -150,15 +150,35 @@ router.post('/announcements', async (req, res) => {
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
     
+    await announcement.populate('createdBy', 'name email');
+    
     if (announcement.type === 'email') {
       const { sendAnnouncementEmail } = require('../utils/resendEmail');
       const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
-      Promise.allSettled(activeUsers.map(u => 
-        sendAnnouncementEmail(u.email, u.name, announcement.title, announcement.message)
-      )).catch(console.error);
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      // Process sequentially to avoid rate limits on free tiers
+      for (const u of activeUsers) {
+        if (!u.email) continue;
+        const result = await sendAnnouncementEmail(u.email, u.name, announcement.title, announcement.message);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+          console.error(`Failed to send to ${u.email}:`, result.error);
+        }
+        // Small delay to respect rate limits (10/sec max)
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      return res.status(201).json({
+        ...announcement.toObject(),
+        emailStats: { success: successCount, failed: failCount, total: activeUsers.length }
+      });
     }
 
-    await announcement.populate('createdBy', 'name email');
     res.status(201).json(announcement);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -57,8 +57,12 @@ export default function AdminAnnouncementsPanel({
         await api.patch(`/admin/announcements/${editingId}`, payload);
         onToast('Announcement updated');
       } else {
-        await api.post('/admin/announcements', payload);
-        onToast('Announcement published');
+        const { data } = await api.post('/admin/announcements', payload);
+        if (data.emailStats) {
+          onToast(`Sent to ${data.emailStats.success} users. ${data.emailStats.failed} failed.`);
+        } else {
+          onToast('Announcement published');
+        }
       }
       resetForm();
       onRefresh();
