@@ -1106,7 +1106,7 @@ button { cursor: pointer; font-family: var(--font); }
 }
 .card-image-wrap img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 0.5s ease;
 }
 .product-card:hover .card-image-wrap img { transform: scale(1.06); }
@@ -1232,7 +1232,7 @@ button { cursor: pointer; font-family: var(--font); }
   border: 1px solid var(--border);
   aspect-ratio: 4/3;
 }
-.detail-image-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.detail-image-wrap img { width: 100%; height: 100%; object-fit: contain; }
 
 .detail-info { display: flex; flex-direction: column; gap: 16px; }
 

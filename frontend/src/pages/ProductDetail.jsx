@@ -187,14 +187,7 @@ export default function ProductDetail() {
                   </div>
                 </div>
               </div>
-              {product.seller?.email && (
-                <div className="detail-meta-item">
-                  <span>📧</span>
-                  <a href={`mailto:${product.seller.email}`} style={{ color: 'var(--accent-light)' }}>
-                    {product.seller.email}
-                  </a>
-                </div>
-              )}
+
               <div className="detail-meta-item">
                 <span>📅</span>
                 <span>Listed: <strong>{new Date(product.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong></span>
@@ -258,11 +251,7 @@ export default function ProductDetail() {
                         </a>
                       </div>
                     )}
-                    {product.seller?.email && (
-                      <a href={`mailto:${product.seller.email}`} className="btn btn-secondary" style={{ width: '100%', textAlign: 'center' }}>
-                        ✉️ Email
-                      </a>
-                    )}
+
                   </div>
                 )
               )}
