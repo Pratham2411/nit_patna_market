@@ -1,4 +1,8 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Force Node.js to prefer IPv4. Render does not support outbound IPv6, which causes ENETUNREACH errors.
+dns.setDefaultResultOrder('ipv4first');
 
 let transporter = null;
 
