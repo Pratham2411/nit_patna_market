@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
 const Message = require('../models/Message');
+const Announcement = require('../models/Announcement');
 const AnnouncementRead = require('../models/AnnouncementRead');
 const BroadcastEmail = require('../models/BroadcastEmail');
 const Feedback = require('../models/Feedback');
