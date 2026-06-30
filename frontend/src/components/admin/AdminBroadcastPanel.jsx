@@ -63,6 +63,18 @@ export default function AdminBroadcastPanel({ onToast }) {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this broadcast log?')) return;
+    
+    try {
+      await api.delete(`/admin/broadcasts/${id}`);
+      setBroadcasts(broadcasts.filter(b => b._id !== id));
+      onToast('Broadcast log deleted successfully.');
+    } catch (err) {
+      onToast(getApiErrorMessage(err, 'Failed to delete broadcast'), 'error');
+    }
+  };
+
   return (
     <div className="admin-panel">
       <div className="admin-panel-grid">
@@ -187,6 +199,16 @@ export default function AdminBroadcastPanel({ onToast }) {
                       {new Date(b.createdAt).toLocaleString()}
                       {b.sentBy?.name && ` · Sent by ${b.sentBy.name}`}
                     </span>
+                  </div>
+                  <div className="admin-data-actions" style={{ marginLeft: 'auto' }}>
+                    <button 
+                      onClick={() => handleDelete(b._id)} 
+                      className="btn" 
+                      style={{ color: '#ef4444', border: '1px solid #fecaca', padding: '6px 10px', fontSize: '14px', background: 'white' }}
+                      title="Delete Broadcast Log"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
               ))}

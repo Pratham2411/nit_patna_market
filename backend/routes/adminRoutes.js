@@ -279,6 +279,16 @@ router.post('/broadcasts', async (req, res) => {
   }
 });
 
+router.delete('/broadcasts/:id', async (req, res) => {
+  try {
+    const broadcast = await BroadcastEmail.findByIdAndDelete(req.params.id);
+    if (!broadcast) return res.status(404).json({ message: 'Broadcast not found' });
+    res.json({ message: 'Broadcast deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ── User feedback inbox ──
 
 router.get('/feedback', async (req, res) => {
