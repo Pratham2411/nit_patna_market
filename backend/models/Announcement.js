@@ -9,7 +9,6 @@ const announcementSchema = new mongoose.Schema(
       enum: ['low', 'normal', 'high', 'urgent'],
       default: 'normal',
     },
-    type: { type: String, enum: ['banner', 'email'], default: 'banner' },
     active: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     expiresAt: { type: Date, default: null },

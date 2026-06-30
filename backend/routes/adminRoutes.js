@@ -3,8 +3,8 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Comment = require('../models/Comment');
 const Message = require('../models/Message');
-const Announcement = require('../models/Announcement');
 const AnnouncementRead = require('../models/AnnouncementRead');
+const BroadcastEmail = require('../models/BroadcastEmail');
 const Feedback = require('../models/Feedback');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
@@ -136,7 +136,7 @@ router.get('/announcements', async (req, res) => {
 
 router.post('/announcements', async (req, res) => {
   try {
-    const { title, message, priority, active, expiresAt, type } = req.body;
+    const { title, message, priority, active, expiresAt } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: 'Title is required' });
     if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
 
@@ -145,40 +145,21 @@ router.post('/announcements', async (req, res) => {
       message: message.trim(),
       priority: priority || 'normal',
       active: active !== false,
-      type: type === 'email' ? 'email' : 'banner',
       createdBy: req.user.id,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
     
     await announcement.populate('createdBy', 'name email');
     
-    if (announcement.type === 'email') {
-      const { sendAnnouncementEmail } = require('../utils/resendEmail');
-      const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
-      
-      let successCount = 0;
-      let failCount = 0;
-      let failures = [];
-      
-      // Process sequentially to avoid rate limits on free tiers
-      for (const u of activeUsers) {
-        if (!u.email) continue;
-        const result = await sendAnnouncementEmail(u.email, u.name, announcement.title, announcement.message);
-        if (result.success) {
-          successCount++;
-        } else {
-          failCount++;
-          failures.push({ email: u.email, reason: result.error });
-          console.error(`Failed to send to ${u.email}:`, result.error);
-        }
-        // Increased delay to 300ms to safely stay under Resend's 10/sec limit
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-      
-      return res.status(201).json({
-        ...announcement.toObject(),
-        emailStats: { success: successCount, failed: failCount, total: activeUsers.length, failures }
-      });
+    // Send email notification via SMTP for the announcement
+    const { sendAnnouncementNotificationEmail } = require('../utils/nodemailerEmail');
+    const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
+    
+    // Process sequentially (though SMTP is fast, a small delay avoids huge bursts)
+    for (const u of activeUsers) {
+      if (!u.email) continue;
+      await sendAnnouncementNotificationEmail(u.email, u.name, announcement.title, announcement.message);
+      await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
     }
 
     res.status(201).json(announcement);
@@ -213,6 +194,61 @@ router.delete('/announcements/:id', async (req, res) => {
     if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
     await AnnouncementRead.deleteMany({ announcement: announcement._id });
     res.json({ message: 'Announcement deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── Email Broadcasts (separate from announcements) ──
+
+router.get('/broadcasts', async (req, res) => {
+  try {
+    const broadcasts = await BroadcastEmail.find()
+      .populate('sentBy', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(broadcasts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/broadcasts', async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    if (!subject?.trim()) return res.status(400).json({ message: 'Subject is required' });
+    if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
+
+    const { sendBroadcastEmail } = require('../utils/nodemailerEmail');
+    const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
+    
+    let successCount = 0;
+    let failCount = 0;
+    let failures = [];
+    
+    for (const u of activeUsers) {
+      if (!u.email) continue;
+      const result = await sendBroadcastEmail(u.email, u.name, subject, message);
+      if (result.success) {
+        successCount++;
+      } else {
+        failCount++;
+        failures.push({ email: u.email, reason: result.error });
+      }
+      // Small delay between emails
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    const broadcast = await BroadcastEmail.create({
+      subject: subject.trim(),
+      message: message.trim(),
+      sentBy: req.user.id,
+      successCount,
+      failedCount: failCount,
+      failures
+    });
+
+    await broadcast.populate('sentBy', 'name email');
+    res.status(201).json(broadcast);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

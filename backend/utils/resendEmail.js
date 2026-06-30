@@ -160,55 +160,7 @@ const sendRequestOfferEmail = async (toEmail, recipientName, senderName, request
   }
 };
 
-const sendDigestEmail = async (toEmail, recipientName, notifications) => {
-  const { isDummyKey, fromEmail } = getEmailClientState();
 
-  if (!resend || isDummyKey) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`\nLOCAL DEV DIGEST for ${toEmail}: ${notifications.length} notifications\n`);
-      return { success: true };
-    }
-    return { success: false, error: 'Email service is not configured' };
-  }
-
-  const safeName = escapeHtml(recipientName);
-
-  const inboxCount = notifications.filter(n => n.category === 'inbox').length;
-  const requestCount = notifications.filter(n => n.category === 'request').length;
-  const productUpdateCount = notifications.filter(n => n.category === 'product_update').length;
-  const commentReplyCount = notifications.filter(n => n.category === 'comment_reply').length;
-
-  let contentHtml = '';
-  if (inboxCount > 0) contentHtml += `<p>You have <strong>${inboxCount}</strong> new message(s) in your inbox.</p>`;
-  if (requestCount > 0) contentHtml += `<p>You have <strong>${requestCount}</strong> new offer(s) for your item requests.</p>`;
-  if (productUpdateCount > 0) contentHtml += `<p>Your products received <strong>${productUpdateCount}</strong> new comment(s).</p>`;
-  if (commentReplyCount > 0) contentHtml += `<p>You have <strong>${commentReplyCount}</strong> new reply(ies) to your comments.</p>`;
-
-  try {
-    const { error } = await resend.emails.send({
-      from: fromEmail,
-      to: toEmail,
-      subject: `Your Daily Digest from Campus Market`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-          <h2 style="color: #1e293b;">Daily Notification Digest</h2>
-          <p>Hi ${safeName},</p>
-          ${contentHtml}
-          <div style="margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Campus Market</a>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-          <p style="font-size: 12px; color: #64748b; text-align: center;">NIT Patna Marketplace</p>
-        </div>
-      `,
-    });
-
-    if (error) return { success: false, error: error.message };
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: 'Failed to send email' };
-  }
-};
 
 const sendPasswordResetEmail = async (toEmail, otp, name) => {
   const { isDummyKey, fromEmail } = getEmailClientState();
@@ -261,51 +213,4 @@ const sendPasswordResetEmail = async (toEmail, otp, name) => {
   }
 };
 
-const sendAnnouncementEmail = async (toEmail, recipientName, announcementTitle, announcementMessage) => {
-  const { isDummyKey, fromEmail } = getEmailClientState();
-
-  if (!resend || isDummyKey) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`\nLOCAL DEV ANNOUNCEMENT for ${toEmail}: ${announcementTitle}\n`);
-      return { success: true };
-    }
-    return { success: false, error: 'Email service is not configured' };
-  }
-
-  const safeName = escapeHtml(recipientName);
-  const safeTitle = escapeHtml(announcementTitle);
-  const safeMessage = escapeHtml(announcementMessage);
-
-  try {
-    const { error } = await resend.emails.send({
-      from: fromEmail,
-      to: toEmail,
-      subject: `Campus Market Announcement: ${safeTitle}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-          <h2 style="color: #1e293b;">${safeTitle}</h2>
-          <p>Hi ${safeName},</p>
-          <div style="background-color: #f4f4f5; padding: 20px; border-radius: 8px; margin: 24px 0;">
-            <p style="margin:0; white-space: pre-wrap;">${safeMessage}</p>
-          </div>
-          <div style="margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Campus Market</a>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-          <p style="font-size: 12px; color: #64748b; text-align: center;">NIT Patna Marketplace</p>
-        </div>
-      `,
-    });
-
-    if (error) {
-      console.error('Resend API error (Announcement):', error);
-      return { success: false, error: error.message };
-    }
-    return { success: true };
-  } catch (err) {
-    console.error('Failed to send announcement email:', err);
-    return { success: false, error: 'Failed to send email' };
-  }
-};
-
-module.exports = { sendOtpEmail, sendNewMessageEmail, sendRequestOfferEmail, sendDigestEmail, sendPasswordResetEmail, sendAnnouncementEmail };
+module.exports = { sendOtpEmail, sendNewMessageEmail, sendRequestOfferEmail, sendPasswordResetEmail };

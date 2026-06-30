@@ -10,7 +10,6 @@ const EMPTY_FORM = {
   message: '',
   priority: 'normal',
   expiresAt: '',
-  type: 'banner',
 };
 
 export default function AdminAnnouncementsPanel({
@@ -36,7 +35,6 @@ export default function AdminAnnouncementsPanel({
       expiresAt: a.expiresAt
         ? new Date(a.expiresAt).toISOString().slice(0, 16)
         : '',
-      type: a.type || 'banner',
     });
   };
 
@@ -49,7 +47,6 @@ export default function AdminAnnouncementsPanel({
         message: form.message.trim(),
         priority: form.priority,
         active: true,
-        type: form.type,
       };
       if (form.expiresAt) payload.expiresAt = new Date(form.expiresAt).toISOString();
 
@@ -57,16 +54,8 @@ export default function AdminAnnouncementsPanel({
         await api.patch(`/admin/announcements/${editingId}`, payload);
         onToast('Announcement updated');
       } else {
-        const { data } = await api.post('/admin/announcements', payload);
-        if (data.emailStats) {
-          onToast(`Sent to ${data.emailStats.success} users. ${data.emailStats.failed} failed.`);
-          if (data.emailStats.failed > 0 && data.emailStats.failures) {
-            const failureMsg = data.emailStats.failures.map(f => `${f.email}: ${f.reason}`).join('\n');
-            alert(`The following emails were rejected by Resend:\n\n${failureMsg}`);
-          }
-        } else {
-          onToast('Announcement published');
-        }
+        await api.post('/admin/announcements', payload);
+        onToast('Announcement published');
       }
       resetForm();
       onRefresh();
@@ -161,32 +150,6 @@ export default function AdminAnnouncementsPanel({
               </div>
             </div>
             
-            <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label className="form-label">Announcement Type</label>
-              <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="admin-ann-type"
-                    value="banner"
-                    checked={form.type === 'banner'}
-                    onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                  />
-                  Website Notification Bar
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="admin-ann-type"
-                    value="email"
-                    checked={form.type === 'email'}
-                    onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                  />
-                  Email Broadcast
-                </label>
-              </div>
-            </div>
-            
             <div className="admin-form-actions">
               {editingId && (
                 <button type="button" className="btn btn-secondary" onClick={resetForm}>
@@ -214,11 +177,7 @@ export default function AdminAnnouncementsPanel({
                   <div className="admin-data-main">
                     <div className="admin-data-title-row">
                       <strong>{a.title || 'Untitled'}</strong>
-                      {a.type === 'email' ? (
-                        <span className="badge" style={{ background: '#7c3aed', color: 'white' }}>Email</span>
-                      ) : (
-                        <PriorityBadge priority={a.priority} />
-                      )}
+                      <PriorityBadge priority={a.priority} />
                       <span className={`admin-status-pill ${a.active ? 'active' : 'inactive'}`}>
                         {a.active ? 'Live' : 'Hidden'}
                       </span>

@@ -1,14 +1,14 @@
 const cron = require('node-cron');
 const NotificationQueue = require('../models/NotificationQueue');
 const User = require('../models/User');
-const { sendDigestEmail } = require('../utils/resendEmail');
+const { sendDigestEmailSmtp } = require('../utils/nodemailerEmail');
 
-// Schedule job to run every day at Midnight IST
-// '0 0 * * *' runs at 00:00. Timezone 'Asia/Kolkata' ensures it's midnight IST.
+// Schedule job to run every week on Sunday at Midnight IST
+// '0 0 * * 0' runs at 00:00 on Sunday. Timezone 'Asia/Kolkata' ensures it's midnight IST.
 const startEmailDigestCron = () => {
-  cron.schedule('0 0 * * *', async () => {
+  cron.schedule('0 0 * * 0', async () => {
     try {
-      console.log('Running daily email digest cron job...');
+      console.log('Running weekly email digest cron job...');
       
       const pendingNotifications = await NotificationQueue.find({}).populate('user', 'name email');
       
@@ -42,7 +42,7 @@ const startEmailDigestCron = () => {
         // or just pass them to the digest builder. 
         // The current digest builder just counts them, which handles bundling.
         
-        const result = await sendDigestEmail(user.email, user.name, notifications);
+        const result = await sendDigestEmailSmtp(user.email, user.name, notifications);
         if (result.success) {
           sentCount++;
         }
@@ -51,16 +51,16 @@ const startEmailDigestCron = () => {
       // Clear the queue after processing
       await NotificationQueue.deleteMany({});
       
-      console.log(`Daily email digest completed. Sent ${sentCount} summary emails.`);
+      console.log(`Weekly email digest completed. Sent ${sentCount} summary emails.`);
     } catch (err) {
-      console.error('Error in daily email digest cron job:', err);
+      console.error('Error in weekly email digest cron job:', err);
     }
   }, {
     scheduled: true,
     timezone: "Asia/Kolkata"
   });
   
-  console.log('Daily email digest cron job scheduled for Midnight IST.');
+  console.log('Weekly email digest cron job scheduled for Sunday Midnight IST.');
 };
 
 module.exports = startEmailDigestCron;

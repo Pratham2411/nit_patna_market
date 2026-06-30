@@ -5,6 +5,7 @@ import { getPrimaryProductImage, resolveProductImageSrc, handleProductImageError
 import { getApiErrorMessage } from '../utils/apiError';
 import AdminAnnouncementsPanel from '../components/admin/AdminAnnouncementsPanel';
 import AdminFeedbackPanel from '../components/admin/AdminFeedbackPanel';
+import AdminBroadcastPanel from '../components/admin/AdminBroadcastPanel';
 import Toast from '../components/ui/Toast';
 
 export default function AdminDashboard() {
@@ -111,6 +112,7 @@ export default function AdminDashboard() {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'announcements', label: 'Announcements' },
+    { id: 'broadcasts', label: 'Broadcasts' },
     { id: 'feedback', label: stats?.openFeedback > 0 ? `Feedback (${stats.openFeedback})` : 'Feedback' },
     { id: 'products', label: 'Products' },
     { id: 'users', label: 'Users' },
@@ -172,6 +174,10 @@ export default function AdminDashboard() {
             onRefresh={loadAnnouncements}
             onToast={showToast}
           />
+        )}
+
+        {tab === 'broadcasts' && (
+          <AdminBroadcastPanel />
         )}
 
         {tab === 'feedback' && (
