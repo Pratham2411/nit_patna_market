@@ -107,7 +107,7 @@ const sendAnnouncementNotificationEmail = async (toEmail, recipientName, announc
   }
 };
 
-const sendDigestEmailSmtp = async (toEmail, recipientName, notifications) => {
+const sendDigestEmailSmtp = async (toEmail, recipientName, notifications = [], recentProducts = []) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return { success: false, error: 'SMTP not configured' };
 
   const safeName = escapeHtml(recipientName);
@@ -123,13 +123,31 @@ const sendDigestEmailSmtp = async (toEmail, recipientName, notifications) => {
   if (productUpdateCount > 0) contentHtml += `<p>Your products received <strong>${productUpdateCount}</strong> new comment(s).</p>`;
   if (commentReplyCount > 0) contentHtml += `<p>You have <strong>${commentReplyCount}</strong> new reply(ies) to your comments.</p>`;
 
-  if (!contentHtml) return { success: true };
+  let productsHtml = '';
+  if (recentProducts.length > 0) {
+    productsHtml = `
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea;">
+        <h3 style="color: #1e293b; margin-bottom: 15px;">🛍️ New in the Market This Week</h3>
+        <ul style="list-style-type: none; padding: 0; margin: 0;">
+          ${recentProducts.map(p => `
+            <li style="margin-bottom: 12px; padding: 12px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <strong>${escapeHtml(p.title)}</strong><br/>
+              <span style="color: #16a34a; font-weight: bold;">$${p.price}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  if (!contentHtml && !productsHtml) return { success: true };
 
   const finalHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
       <h2 style="color: #1e293b;">Your Weekly Digest</h2>
       <p>Hi ${safeName},</p>
       ${contentHtml}
+      ${productsHtml}
       <div style="margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Check Your Notifications</a>
       </div>

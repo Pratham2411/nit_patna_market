@@ -43,7 +43,9 @@ export default function AdminBroadcastPanel({ onToast }) {
       setBroadcasts([newBroadcast, ...broadcasts]);
       setFormData({ subject: '', message: '' });
       
-      if (newBroadcast.failedCount > 0) {
+      if (newBroadcast.status === 'sending') {
+        onToast('Broadcast started! It is sending in the background. Refresh the page in a minute to see the final stats.');
+      } else if (newBroadcast.failedCount > 0) {
         onToast(`Broadcast sent, but ${newBroadcast.failedCount} failed.`);
         setFailDetails({
           success: newBroadcast.successCount,
@@ -52,7 +54,7 @@ export default function AdminBroadcastPanel({ onToast }) {
           failures: newBroadcast.failures,
         });
       } else {
-        onToast('Broadcast sent successfully to all users!');
+        onToast('Broadcast sent successfully!');
       }
     } catch (err) {
       onToast(getApiErrorMessage(err, 'Failed to send broadcast'), 'error');
@@ -147,7 +149,7 @@ export default function AdminBroadcastPanel({ onToast }) {
             <h3 className="admin-panel-card-title flex items-center gap-2">
               ✅ Broadcast History
             </h3>
-            <span className="admin-list-count">{broadcasts.length} sent</span>
+            <span className="admin-list-count">{broadcasts.length} sent (Refresh to update)</span>
           </div>
           
           {loading ? (
@@ -161,13 +163,21 @@ export default function AdminBroadcastPanel({ onToast }) {
                   <div className="admin-data-main">
                     <div className="admin-data-title-row">
                       <strong>{b.subject}</strong>
-                      <span className="admin-status-pill active" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-                        {b.successCount} Sent
-                      </span>
-                      {b.failedCount > 0 && (
-                        <span className="admin-status-pill inactive" style={{ background: '#fef2f2', color: '#dc2626' }}>
-                          {b.failedCount} Failed
+                      {b.status === 'sending' ? (
+                        <span className="admin-status-pill" style={{ background: '#fef3c7', color: '#d97706' }}>
+                          ⏳ Sending in background...
                         </span>
+                      ) : (
+                        <>
+                          <span className="admin-status-pill active" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                            {b.successCount} Sent
+                          </span>
+                          {b.failedCount > 0 && (
+                            <span className="admin-status-pill inactive" style={{ background: '#fef2f2', color: '#dc2626' }}>
+                              {b.failedCount} Failed
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                     <p className="admin-data-message" style={{ margin: '8px 0', WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>

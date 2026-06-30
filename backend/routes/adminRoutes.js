@@ -219,37 +219,61 @@ router.post('/broadcasts', async (req, res) => {
     if (!subject?.trim()) return res.status(400).json({ message: 'Subject is required' });
     if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
 
-    const { sendBroadcastEmail } = require('../utils/nodemailerEmail');
     const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
     
-    let successCount = 0;
-    let failCount = 0;
-    let failures = [];
-    
-    for (const u of activeUsers) {
-      if (!u.email) continue;
-      const result = await sendBroadcastEmail(u.email, u.name, subject, message);
-      if (result.success) {
-        successCount++;
-      } else {
-        failCount++;
-        failures.push({ email: u.email, reason: result.error });
-      }
-      // Small delay between emails
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
+    // Create the broadcast document immediately with 'sending' status
     const broadcast = await BroadcastEmail.create({
       subject: subject.trim(),
       message: message.trim(),
       sentBy: req.user.id,
-      successCount,
-      failedCount: failCount,
-      failures
+      status: 'sending',
+      successCount: 0,
+      failedCount: 0,
+      failures: []
     });
 
     await broadcast.populate('sentBy', 'name email');
+    
+    // Respond to frontend immediately so it doesn't hang
     res.status(201).json(broadcast);
+
+    // Process emails asynchronously in the background
+    const processEmails = async () => {
+      const { sendBroadcastEmail } = require('../utils/nodemailerEmail');
+      let successCount = 0;
+      let failCount = 0;
+      let failures = [];
+
+      for (let i = 0; i < activeUsers.length; i++) {
+        const u = activeUsers[i];
+        if (!u.email) continue;
+        const result = await sendBroadcastEmail(u.email, u.name, subject, message);
+        
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+          failures.push({ email: u.email, reason: result.error });
+        }
+        // Small delay between emails
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      // Update broadcast document with final stats
+      await BroadcastEmail.findByIdAndUpdate(broadcast._id, {
+        status: 'completed',
+        successCount,
+        failedCount: failCount,
+        failures
+      });
+    };
+
+    // Run the background function but don't await it
+    processEmails().catch(err => {
+      console.error('Background broadcast failed:', err);
+      BroadcastEmail.findByIdAndUpdate(broadcast._id, { status: 'failed' }).catch(console.error);
+    });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

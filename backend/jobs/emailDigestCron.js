@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const NotificationQueue = require('../models/NotificationQueue');
 const User = require('../models/User');
+const Product = require('../models/Product');
 const { sendDigestEmailSmtp } = require('../utils/nodemailerEmail');
 
 // Schedule job to run every week on Sunday at Midnight IST
@@ -12,40 +13,51 @@ const startEmailDigestCron = () => {
       
       const pendingNotifications = await NotificationQueue.find({}).populate('user', 'name email');
       
-      if (!pendingNotifications.length) {
-        console.log('No pending notifications to send.');
+      const activeUsers = await User.find({ isBanned: { $ne: true } }).select('name email');
+      
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      const recentProducts = await Product.find({
+        createdAt: { $gte: oneWeekAgo },
+        status: 'available',
+        isSpam: false
+      }).sort({ createdAt: -1 }).limit(10).select('title price');
+
+      if (!pendingNotifications.length && !recentProducts.length) {
+        console.log('No pending notifications and no new products to send.');
         return;
       }
 
       // Group notifications by user ID
       const userNotifications = {};
       pendingNotifications.forEach(notification => {
-        if (!notification.user || !notification.user.email) return;
-        
-        const userId = notification.user._id.toString();
+        if (!notification.user) return;
+        const userId = notification.user._id ? notification.user._id.toString() : notification.user.toString();
         if (!userNotifications[userId]) {
-          userNotifications[userId] = {
-            user: notification.user,
-            notifications: []
-          };
+          userNotifications[userId] = [];
         }
-        userNotifications[userId].notifications.push(notification);
+        userNotifications[userId].push(notification);
       });
 
       let sentCount = 0;
       
-      // Send one digest email per user
-      for (const userId in userNotifications) {
-        const { user, notifications } = userNotifications[userId];
+      // Send one digest email per active user if they have notifications OR there are recent products
+      for (let i = 0; i < activeUsers.length; i++) {
+        const user = activeUsers[i];
+        if (!user.email) continue;
+
+        const notifications = userNotifications[user._id.toString()] || [];
         
-        // Remove duplicates of the same category for the same user if needed, 
-        // or just pass them to the digest builder. 
-        // The current digest builder just counts them, which handles bundling.
-        
-        const result = await sendDigestEmailSmtp(user.email, user.name, notifications);
+        // Skip user if they have no personal notifications AND there are no new products
+        if (notifications.length === 0 && recentProducts.length === 0) continue;
+
+        const result = await sendDigestEmailSmtp(user.email, user.name, notifications, recentProducts);
         if (result.success) {
           sentCount++;
         }
+        // Small delay to prevent rate-limiting when looping
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       // Clear the queue after processing

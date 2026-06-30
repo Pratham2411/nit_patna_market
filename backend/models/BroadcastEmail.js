@@ -5,6 +5,7 @@ const broadcastEmailSchema = new mongoose.Schema(
     subject: { type: String, required: true, trim: true, maxlength: 120 },
     message: { type: String, required: true, trim: true },
     sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    status: { type: String, enum: ['sending', 'completed', 'failed'], default: 'sending' },
     successCount: { type: Number, default: 0 },
     failedCount: { type: Number, default: 0 },
     failures: [{ email: String, reason: String }],
