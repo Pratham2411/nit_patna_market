@@ -12,6 +12,7 @@ const getTransporter = () => {
     pool: true, // Use pooled connections for loops
     maxConnections: 3,
     maxMessages: 100,
+    family: 4, // Force IPv4 to prevent ENETUNREACH errors in IPv6-disabled environments like Render
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
