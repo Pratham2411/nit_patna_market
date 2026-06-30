@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { Mail, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 export default function AdminBroadcastPanel({ onToast }) {
   const [broadcasts, setBroadcasts] = useState([]);
@@ -68,8 +67,7 @@ export default function AdminBroadcastPanel({ onToast }) {
         {/* Compose Section */}
         <div className="admin-form-card glass-card">
           <h3 className="admin-panel-card-title flex items-center gap-2">
-            <Mail className="w-5 h-5 text-indigo-600" style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Compose Broadcast
+            📧 Compose Broadcast
           </h3>
           <p className="admin-panel-card-desc">
             Send an email to all active users on the platform
@@ -79,7 +77,7 @@ export default function AdminBroadcastPanel({ onToast }) {
             {failDetails && (
               <div style={{ marginBottom: '16px', padding: '16px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                  <AlertTriangle className="w-5 h-5" style={{ color: '#f97316' }} />
+                  <span style={{ color: '#f97316', fontSize: '20px' }}>⚠️</span>
                   <div>
                     <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '600', color: '#9a3412' }}>
                       Partial Delivery Issue ({failDetails.success}/{failDetails.total} successful)
@@ -137,11 +135,7 @@ export default function AdminBroadcastPanel({ onToast }) {
                 disabled={sending || !formData.subject.trim() || !formData.message.trim()}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
-                {sending ? 'Sending...' : (
-                  <>
-                    <Mail className="w-4 h-4" /> Send Broadcast
-                  </>
-                )}
+                {sending ? 'Sending...' : '📤 Send Broadcast'}
               </button>
             </div>
           </form>
@@ -151,8 +145,7 @@ export default function AdminBroadcastPanel({ onToast }) {
         <div className="admin-list-card">
           <div className="admin-list-header">
             <h3 className="admin-panel-card-title flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" style={{ marginRight: '8px', verticalAlign: 'middle', color: '#16a34a' }} />
-              Broadcast History
+              ✅ Broadcast History
             </h3>
             <span className="admin-list-count">{broadcasts.length} sent</span>
           </div>
