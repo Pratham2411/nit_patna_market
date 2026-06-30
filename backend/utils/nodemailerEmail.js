@@ -1,7 +1,11 @@
 const { google } = require('googleapis');
 
-// 1. Create the OAuth2 client
-const createGmailClient = () => {
+let gmailClient = null;
+
+// 1. Create the OAuth2 client (Singleton to prevent token fetching spam)
+const getGmailClient = () => {
+  if (gmailClient) return gmailClient;
+  
   const oAuth2Client = new google.auth.OAuth2(
     process.env.GMAIL_CLIENT_ID,
     process.env.GMAIL_CLIENT_SECRET,
@@ -10,7 +14,8 @@ const createGmailClient = () => {
 
   oAuth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
 
-  return google.gmail({ version: 'v1', auth: oAuth2Client });
+  gmailClient = google.gmail({ version: 'v1', auth: oAuth2Client });
+  return gmailClient;
 };
 
 // 2. Helper to encode the email into a base64url string (required by Gmail API)
@@ -55,37 +60,35 @@ const getFromConfig = () => {
 
 // ── Broadcast Email ──
 
-const sendBroadcastEmailSmtp = async (toEmails, subject, htmlMessage) => {
+const sendBroadcastEmail = async (toEmail, recipientName, subject, htmlMessage) => {
   if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_REFRESH_TOKEN) {
     return { success: false, error: 'Gmail API OAuth2 not configured' };
   }
 
   const { name, email } = getFromConfig();
-  const gmail = createGmailClient();
-  let successCount = 0;
-  let failCount = 0;
+  const safeName = escapeHtml(recipientName);
+  const gmail = getGmailClient();
+  
+  // Wrap the message with a greeting if not already present (optional, matching old behavior)
+  const finalHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p>Hi ${safeName},</p>
+      ${htmlMessage}
+    </div>
+  `;
 
-  for (const toEmail of toEmails) {
-    try {
-      const rawMessage = makeMimeMessage(toEmail, name, email, subject, htmlMessage);
-      
-      await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: rawMessage
-        }
-      });
-      successCount++;
-    } catch (error) {
-      console.error(`Failed to send broadcast to ${toEmail}:`, error.message);
-      failCount++;
-    }
+  try {
+    const rawMessage = makeMimeMessage(toEmail, name, email, subject, finalHtml);
     
-    // Crucial pacing: wait 200ms between each HTTP request to avoid hitting Google's rate limits (250 quota units per second)
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: rawMessage }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to send broadcast to ${toEmail}:`, error.message);
+    return { success: false, error: error.message };
   }
-
-  return { success: true, successCount, failCount };
 };
 
 // ── Weekly Digest Email ──
@@ -149,7 +152,7 @@ const sendDigestEmailSmtp = async (toEmail, recipientName, notifications = [], r
   const { name, email } = getFromConfig();
   
   try {
-    const gmail = createGmailClient();
+    const gmail = getGmailClient();
     const rawMessage = makeMimeMessage(toEmail, name, email, 'Your Weekly Campus Market Digest', finalHtml);
     
     await gmail.users.messages.send({
@@ -165,6 +168,6 @@ const sendDigestEmailSmtp = async (toEmail, recipientName, notifications = [], r
 };
 
 module.exports = {
-  sendBroadcastEmailSmtp,
+  sendBroadcastEmail,
   sendDigestEmailSmtp
 };

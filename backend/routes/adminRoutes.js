@@ -255,8 +255,9 @@ router.post('/broadcasts', async (req, res) => {
           failCount++;
           failures.push({ email: u.email, reason: result.error });
         }
-        // Small delay between emails
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Crucial pacing: Google API allows 2.5 sends per second (250 quota/sec, 100 quota/send). 
+        // 500ms delay perfectly guarantees we never hit rate limits.
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // Update broadcast document with final stats

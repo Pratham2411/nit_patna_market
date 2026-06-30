@@ -56,8 +56,9 @@ const startEmailDigestCron = () => {
         if (result.success) {
           sentCount++;
         }
-        // Small delay to prevent rate-limiting when looping
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Crucial pacing: Google API allows 2.5 sends per second (250 quota/sec, 100 quota/send). 
+        // 500ms delay perfectly guarantees we never hit rate limits.
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // Clear the queue after processing
