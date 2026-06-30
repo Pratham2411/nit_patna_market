@@ -1,127 +1,114 @@
-const nodemailer = require('nodemailer');
-const dns = require('dns');
+const { google } = require('googleapis');
 
-// Force Node.js to prefer IPv4. Render does not support outbound IPv6, which causes ENETUNREACH errors.
-dns.setDefaultResultOrder('ipv4first');
+// 1. Create the OAuth2 client
+const createGmailClient = () => {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.GMAIL_CLIENT_ID,
+    process.env.GMAIL_CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground' // Standard redirect URI for testing/personal use
+  );
 
-let transporter = null;
+  oAuth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
 
-const getTransporter = () => {
-  if (transporter) return transporter;
+  return google.gmail({ version: 'v1', auth: oAuth2Client });
+};
+
+// 2. Helper to encode the email into a base64url string (required by Gmail API)
+const makeMimeMessage = (to, fromName, fromEmail, subject, html) => {
+  // Using =?utf-8?B?...?= encodes the subject so emojis and special characters work perfectly
+  const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
   
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    pool: true, // Use pooled connections for loops
-    maxConnections: 3,
-    maxMessages: 100,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-  return transporter;
+  const str = [
+    `To: ${to}`,
+    `From: "${fromName}" <${fromEmail}>`,
+    `Subject: ${encodedSubject}`,
+    `Content-Type: text/html; charset=utf-8`,
+    `MIME-Version: 1.0`,
+    '',
+    html
+  ].join('\r\n');
+
+  // Base64url encode the string
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
+const escapeHtml = (unsafe) => {
+  if (!unsafe) return '';
+  return unsafe
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 };
 
 const getFromConfig = () => {
   const name = process.env.FROM_NAME || 'Campus Market';
-  const email = process.env.SMTP_USER || 'noreply@campusmarket.com';
-  return `"${name}" <${email}>`;
+  const email = process.env.GMAIL_SENDER_EMAIL || process.env.SMTP_USER || 'noreply@campusmarket.com';
+  return { name, email };
 };
 
-const escapeHtml = (value) => String(value || '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
+// ── Broadcast Email ──
 
-const sendBroadcastEmail = async (toEmail, recipientName, subject, htmlBody) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.error('SMTP credentials not configured.');
-    return { success: false, error: 'SMTP credentials not configured.' };
+const sendBroadcastEmailSmtp = async (toEmails, subject, htmlMessage) => {
+  if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_REFRESH_TOKEN) {
+    return { success: false, error: 'Gmail API OAuth2 not configured' };
+  }
+
+  const { name, email } = getFromConfig();
+  const gmail = createGmailClient();
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const toEmail of toEmails) {
+    try {
+      const rawMessage = makeMimeMessage(toEmail, name, email, subject, htmlMessage);
+      
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: rawMessage
+        }
+      });
+      successCount++;
+    } catch (error) {
+      console.error(`Failed to send broadcast to ${toEmail}:`, error.message);
+      failCount++;
+    }
+    
+    // Crucial pacing: wait 200ms between each HTTP request to avoid hitting Google's rate limits (250 quota units per second)
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  return { success: true, successCount, failCount };
+};
+
+// ── Weekly Digest Email ──
+
+const sendDigestEmailSmtp = async (toEmail, recipientName, notifications = [], recentProducts = []) => {
+  if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_REFRESH_TOKEN) {
+    return { success: false, error: 'Gmail API OAuth2 not configured' };
   }
 
   const safeName = escapeHtml(recipientName);
   
-  const finalHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-      <p>Hi ${safeName},</p>
-      <div style="background-color: #f4f4f5; padding: 20px; border-radius: 8px; margin: 24px 0; font-size: 16px; line-height: 1.5;">
-        ${htmlBody}
-      </div>
-      <div style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Visit Campus Market</a>
-      </div>
-      <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="font-size: 12px; color: #64748b; text-align: center;">Campus Market Team</p>
-    </div>
-  `;
+  let newMessagesCount = 0;
+  let productUpdateCount = 0;
+  let commentReplyCount = 0;
 
-  try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: getFromConfig(),
-      to: toEmail,
-      subject: subject,
-      html: finalHtml,
-    });
-    return { success: true };
-  } catch (err) {
-    console.error('Nodemailer Error (Broadcast):', err);
-    return { success: false, error: err.message };
-  }
-};
-
-const sendAnnouncementNotificationEmail = async (toEmail, recipientName, announcementTitle, announcementMessage) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return { success: false, error: 'SMTP not configured' };
-
-  const safeName = escapeHtml(recipientName);
-  const safeTitle = escapeHtml(announcementTitle);
-  const safeMessage = escapeHtml(announcementMessage);
-
-  const finalHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-      <h2 style="color: #1e293b;">${safeTitle}</h2>
-      <p>Hi ${safeName},</p>
-      <div style="background-color: #f4f4f5; padding: 20px; border-radius: 8px; margin: 24px 0;">
-        <p style="margin:0; white-space: pre-wrap;">${safeMessage}</p>
-      </div>
-      <div style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Campus Market</a>
-      </div>
-      <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="font-size: 12px; color: #64748b; text-align: center;">Campus Market Team</p>
-    </div>
-  `;
-
-  try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: getFromConfig(),
-      to: toEmail,
-      subject: `New Announcement: ${safeTitle}`,
-      html: finalHtml,
-    });
-    return { success: true };
-  } catch (err) {
-    console.error('Nodemailer Error (Announcement):', err);
-    return { success: false, error: err.message };
-  }
-};
-
-const sendDigestEmailSmtp = async (toEmail, recipientName, notifications = [], recentProducts = []) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return { success: false, error: 'SMTP not configured' };
-
-  const safeName = escapeHtml(recipientName);
-
-  const inboxCount = notifications.filter(n => n.category === 'inbox').length;
-  const requestCount = notifications.filter(n => n.category === 'request').length;
-  const productUpdateCount = notifications.filter(n => n.category === 'product_update').length;
-  const commentReplyCount = notifications.filter(n => n.category === 'comment_reply').length;
+  notifications.forEach(n => {
+    if (n.type === 'NEW_MESSAGE') newMessagesCount++;
+    else if (n.type === 'PRODUCT_UPDATE') productUpdateCount++;
+    else if (n.type === 'COMMENT_REPLY') commentReplyCount++;
+  });
 
   let contentHtml = '';
-  if (inboxCount > 0) contentHtml += `<p>You have <strong>${inboxCount}</strong> new message(s) in your inbox.</p>`;
-  if (requestCount > 0) contentHtml += `<p>You have <strong>${requestCount}</strong> new offer(s) for your item requests.</p>`;
+  if (newMessagesCount > 0) contentHtml += `<p>You have <strong>${newMessagesCount}</strong> unread message(s) in your inbox.</p>`;
   if (productUpdateCount > 0) contentHtml += `<p>Your products received <strong>${productUpdateCount}</strong> new comment(s).</p>`;
   if (commentReplyCount > 0) contentHtml += `<p>You have <strong>${commentReplyCount}</strong> new reply(ies) to your comments.</p>`;
 
@@ -146,31 +133,38 @@ const sendDigestEmailSmtp = async (toEmail, recipientName, notifications = [], r
 
   const finalHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-      <h2 style="color: #1e293b;">Your Weekly Digest</h2>
+      <h2 style="color: #7c3aed; margin-bottom: 20px;">Your Weekly Campus Market Digest</h2>
       <p>Hi ${safeName},</p>
       ${contentHtml}
       ${productsHtml}
       <div style="margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Check Your Notifications</a>
       </div>
-      <hr style="border: none; border-top: 1px solid #eaeaea; margin: 24px 0;" />
-      <p style="font-size: 12px; color: #64748b; text-align: center;">Campus Market Team</p>
+      <p style="color: #64748b; font-size: 14px; margin-top: 40px; border-top: 1px solid #eaeaea; padding-top: 20px;">
+        You're receiving this because you have active notifications or are subscribed to market updates.
+      </p>
     </div>
   `;
 
+  const { name, email } = getFromConfig();
+  
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: getFromConfig(),
-      to: toEmail,
-      subject: 'Your Weekly Digest from Campus Market',
-      html: finalHtml,
+    const gmail = createGmailClient();
+    const rawMessage = makeMimeMessage(toEmail, name, email, 'Your Weekly Campus Market Digest', finalHtml);
+    
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: rawMessage }
     });
+    
     return { success: true };
   } catch (err) {
-    console.error('Nodemailer Error (Digest):', err);
+    console.error('Error sending digest email via Gmail API:', err);
     return { success: false, error: err.message };
   }
 };
 
-module.exports = { sendBroadcastEmail, sendAnnouncementNotificationEmail, sendDigestEmailSmtp };
+module.exports = {
+  sendBroadcastEmailSmtp,
+  sendDigestEmailSmtp
+};
